@@ -1,0 +1,20 @@
+-- +goose Down
+DROP TABLE IF EXISTS webhook_idempotency;
+DROP TABLE IF EXISTS analytics_events;
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS gallery_photos;
+DROP TABLE IF EXISTS digital_gifts;
+DROP TABLE IF EXISTS guestbook_messages;
+DROP TABLE IF EXISTS rsvps;
+DROP TABLE IF EXISTS guests;
+DROP TABLE IF EXISTS event_sections;
+DROP TABLE IF EXISTS templates_music;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS templates;
+DROP TABLE IF EXISTS subscriptions;
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS packages;
+DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS users;
+DROP EXTENSION IF EXISTS "pgcrypto";
+DROP EXTENSION IF EXISTS "uuid-ossp";

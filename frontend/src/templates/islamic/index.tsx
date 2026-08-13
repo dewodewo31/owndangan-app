@@ -1,0 +1,49 @@
+import type { TemplateDefinition } from "@/templates/types"
+
+export const definition: TemplateDefinition = {
+  kind: "islamic",
+  name: "Islamic",
+  category: "Islamic",
+  description:
+    "Elegant and spiritual Muslim wedding invitation with geometric Islamic-inspired patterns, deep teal & gold on cream, and refined serif typography.",
+  tags: ["Islamic", "Elegant", "Modern"],
+  thumbnail:
+    "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=60",
+  theme: {
+    primary: "#0f6e6e",
+    secondary: "#0b5353",
+    background: "#f7faf7",
+    surface: "#ffffff",
+    text: "#14302f",
+    muted: "#5d7a78",
+    accent: "#b8860b",
+    border: "#e3ebe6",
+    radius: "1rem",
+    fontHeading: "'Cormorant Garamond', serif",
+    fontBody: "'Inter', sans-serif",
+    fontAccent: "'Great Vibes', cursive",
+    sectionSpacing: "5rem",
+    contentWidth: "64rem",
+    heroHeight: "92vh",
+    animationDuration: "0.8s",
+    animationEasing: "cubic-bezier(0.22,1,0.36,1)",
+    revealDistance: "32px",
+  },
+  nav: "floating-menu",
+  animation: { variant: "fade-up", stagger: true, parallax: false },
+  decoration: "geometric",
+  sections: [
+    { key: "cover", variant: "framed" },
+    { key: "quote" },
+    { key: "couple", variant: "portrait" },
+    { key: "parents" },
+    { key: "events", variant: "cards" },
+    { key: "gallery", variant: "grid" },
+    { key: "gift" },
+    { key: "rsvp" },
+    { key: "guestbook" },
+    { key: "closing" },
+  ],
+}
+
+export default definition

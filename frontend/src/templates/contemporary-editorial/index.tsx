@@ -1,0 +1,48 @@
+import type { TemplateDefinition } from "@/templates/types"
+
+export const definition: TemplateDefinition = {
+  kind: "contemporary-editorial",
+  name: "Contemporary Editorial",
+  category: "Editorial",
+  description:
+    "A high-fashion magazine aesthetic with oversized typography, asymmetric split layouts and a bold editorial red accent. For the artistic modern wedding.",
+  tags: ["Editorial", "Magazine", "High-end"],
+  thumbnail:
+    "https://images.unsplash.com/photo-1519741497674-9b181a268d28?auto=format&fit=crop&w=800&q=60",
+  theme: {
+    primary: "#111111",
+    secondary: "#1a1a1a",
+    background: "#ffffff",
+    surface: "#f2f2f0",
+    text: "#111111",
+    muted: "#707070",
+    accent: "#e2483d",
+    border: "#e5e5e2",
+    radius: "0rem",
+    fontHeading: "'DM Serif Display', serif",
+    fontBody: "'Montserrat', sans-serif",
+    fontAccent: "'Playfair Display', serif",
+    sectionSpacing: "7rem",
+    contentWidth: "72rem",
+    heroHeight: "100vh",
+    animationDuration: "0.85s",
+    animationEasing: "cubic-bezier(0.22,1,0.36,1)",
+    revealDistance: "48px",
+  },
+  nav: "overlay",
+  animation: { variant: "text-reveal", stagger: true, parallax: true },
+  decoration: "editorial",
+  sections: [
+    { key: "cover", variant: "editorial" },
+    { key: "couple", variant: "editorial" },
+    { key: "gallery", variant: "columns" },
+    { key: "events", variant: "side" },
+    { key: "quote" },
+    { key: "rsvp" },
+    { key: "gift" },
+    { key: "guestbook" },
+    { key: "closing" },
+  ],
+}
+
+export default definition
