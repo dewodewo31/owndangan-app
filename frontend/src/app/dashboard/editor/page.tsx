@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import api from "@/lib/api"
+import { TEMPLATES, templateOccasions, OCCASION_LABELS } from "@/templates"
 import type { WeddingEvent, EventSections, GalleryPhoto, Music, DigitalGift, TemplateSummary, LoveStory } from "@/lib/types"
 
 type Tab = "detail" | "sections" | "gallery" | "music" | "gifts" | "template" | "love-story"
@@ -77,6 +78,7 @@ export default function EditorPage() {
   const [gift, setGift] = useState<DigitalGift | null>(null)
   const [loveStories, setLoveStories] = useState<LoveStory[]>([])
   const [templates, setTemplates] = useState<TemplateSummary[]>([])
+  const [templateFilter, setTemplateFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>("detail")
@@ -103,6 +105,10 @@ export default function EditorPage() {
       fetchConfig(selectedId)
     }
   }, [selectedId])
+
+  useEffect(() => {
+    setTemplateFilter("all")
+  }, [templates])
 
   async function fetchEvents() {
     setLoading(true)
@@ -983,27 +989,72 @@ export default function EditorPage() {
   }
 
   function renderTemplate() {
+    const occasions = templateOccasions()
+    const defOf = (name: string) => TEMPLATES.find((x) => x.name.toLowerCase() === name.toLowerCase())
+    const visible = templates.filter((t) => {
+      if (templateFilter === "all") return true
+      return defOf(t.name)?.occasions.includes(templateFilter) ?? false
+    })
     return (
       <div className="space-y-4">
         <h3 className="font-medium">Pilih Templat</h3>
         <p className="text-sm text-muted-foreground">Tampilan undangan publik akan mengikuti templat yang dipilih.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {templates.map((t) => (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setTemplateFilter("all")}
+            className={classNames(
+              "rounded-full px-4 py-2 text-sm transition",
+              templateFilter === "all" ? "bg-primary text-primary-foreground" : "border border-input text-muted-foreground hover:border-primary hover:text-primary"
+            )}
+          >
+            Semua
+          </button>
+          {occasions.map((o) => (
             <button
-              key={t.id}
               type="button"
-              onClick={() => assignTemplate(t.id)}
+              key={o}
+              onClick={() => setTemplateFilter(o)}
               className={classNames(
-                "text-left rounded-xl border p-3 transition",
-                event?.template_id === t.id ? "border-primary ring-2 ring-primary" : "border-input hover:border-primary"
+                "rounded-full px-4 py-2 text-sm transition",
+                templateFilter === o ? "bg-primary text-primary-foreground" : "border border-input text-muted-foreground hover:border-primary hover:text-primary"
               )}
             >
-              {t.thumbnail_url ? <img src={t.thumbnail_url} alt={t.name} className="aspect-video w-full object-cover rounded" /> : <div className="aspect-video w-full bg-muted rounded flex items-center justify-center"><Copy className="h-6 w-6 text-muted-foreground" /></div>}
-              <p className="mt-2 font-medium text-sm">{t.name}</p>
-              <Badge variant="secondary" className="mt-1">{t.group_name}</Badge>
+              {OCCASION_LABELS[o] ?? o}
             </button>
           ))}
         </div>
+        {visible.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Tidak ada templat untuk kesempatan ini.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {visible.map((t) => {
+              const def = defOf(t.name)
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => assignTemplate(t.id)}
+                  className={classNames(
+                    "text-left rounded-xl border p-3 transition",
+                    event?.template_id === t.id ? "border-primary ring-2 ring-primary" : "border-input hover:border-primary"
+                  )}
+                >
+                  {t.thumbnail_url ? <img src={t.thumbnail_url} alt={t.name} className="aspect-video w-full object-cover rounded" /> : <div className="aspect-video w-full bg-muted rounded flex items-center justify-center"><Copy className="h-6 w-6 text-muted-foreground" /></div>}
+                  <p className="mt-2 font-medium text-sm">{t.name}</p>
+                  <Badge variant="secondary" className="mt-1">{t.group_name}</Badge>
+                  {def && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {def.occasions.map((o) => (
+                        <Badge key={o} variant="outline" className="text-xs">{OCCASION_LABELS[o] ?? o}</Badge>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }
