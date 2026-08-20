@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
-import { PenSquare, Eye, Upload, Trash2, Save, Plus, ImageIcon, Music as MusicIcon, Gift, Copy, ExternalLink, Check, Loader2 } from "lucide-react"
+import { PenSquare, Eye, Upload, Trash2, Save, Plus, ImageIcon, Music as MusicIcon, Gift, Copy, ExternalLink, Check, Loader2, Heart, ArrowUp, ArrowDown, GripVertical, X } from "lucide-react"
 import ProtectedRoute from "@/components/dashboard/protected-route"
 import DashboardLayout from "@/components/dashboard/dashboard-layout"
-import InvitationPreview from "@/components/dashboard/invitation-preview"
+import { LivePreview } from "@/components/dashboard/live-preview"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,9 +13,9 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import api from "@/lib/api"
-import type { WeddingEvent, EventSections, GalleryPhoto, Music, DigitalGift, TemplateSummary } from "@/lib/types"
+import type { WeddingEvent, EventSections, GalleryPhoto, Music, DigitalGift, TemplateSummary, LoveStory } from "@/lib/types"
 
-type Tab = "detail" | "sections" | "gallery" | "music" | "gifts" | "template"
+type Tab = "detail" | "sections" | "gallery" | "music" | "gifts" | "template" | "love-story"
 
 const VERSE_PRESETS: Record<string, { label: string; text: string; source: string }[]> = {
   quran: [
@@ -75,17 +75,20 @@ export default function EditorPage() {
   const [music, setMusic] = useState<Music | null>(null)
   const [presets, setPresets] = useState<Music[]>([])
   const [gift, setGift] = useState<DigitalGift | null>(null)
+  const [loveStories, setLoveStories] = useState<LoveStory[]>([])
   const [templates, setTemplates] = useState<TemplateSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>("detail")
   const [showCreate, setShowCreate] = useState(false)
   const [newTitle, setNewTitle] = useState("")
+  const [showMobilePreview, setShowMobilePreview] = useState(false)
 
   const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "detail", label: "Detail Undangan", icon: PenSquare },
     { id: "sections", label: "Bagian", icon: Copy },
     { id: "gallery", label: "Galeri", icon: ImageIcon },
+    { id: "love-story", label: "Kisah Kami", icon: Heart },
     { id: "music", label: "Musik", icon: MusicIcon },
     { id: "gifts", label: "Hadiah Digital", icon: Gift },
     { id: "template", label: "Templat", icon: ImageIcon },
@@ -126,12 +129,13 @@ export default function EditorPage() {
       }
     }
     try {
-      const [ev, sec, gal, mus, gif, tmpl, presets] = await Promise.all([
+      const [ev, sec, gal, mus, gif, stories, tmpl, presets] = await Promise.all([
         safe(api.get(`/events/${id}`).then((r) => r.data), null as any),
         safe(api.get(`/events/${id}/sections`).then((r) => r.data), null as any),
         safe(api.get(`/events/${id}/gallery`).then((r) => r.data), [] as GalleryPhoto[]),
         safe(api.get(`/events/${id}/music`).then((r) => r.data), null as unknown as Music | null),
         safe(api.get(`/events/${id}/digital-gifts`).then((r) => r.data), null as unknown as DigitalGift | null),
+        safe(api.get(`/events/${id}/love-stories`).then((r) => r.data), [] as LoveStory[]),
         safe(api.get("/templates").then((r) => r.data), [] as TemplateSummary[]),
         safe(api.get(`/events/${id}/music/presets`).then((r) => r.data), [] as Music[]),
       ])
@@ -140,6 +144,7 @@ export default function EditorPage() {
       setGallery(gal as GalleryPhoto[] || [])
       setMusic(mus as Music | null)
       setGift(gif as DigitalGift | null)
+      setLoveStories(stories as LoveStory[])
       setTemplates(tmpl as TemplateSummary[])
       setPresets(presets as Music[])
     } catch (e) {
@@ -217,6 +222,7 @@ export default function EditorPage() {
       event_details_enabled: s.event_details_enabled,
       gallery_enabled: s.gallery_enabled,
       video_enabled: s.video_enabled,
+      love_story_enabled: s.love_story_enabled,
       music_id: s.music_id,
       rsvp_enabled: s.rsvp_enabled,
       guestbook_enabled: s.guestbook_enabled,
@@ -372,7 +378,7 @@ export default function EditorPage() {
                 </span>
               )}
               {event && canPublish && (
-                <Button onClick={publish} className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0">
+                <Button onClick={publish} className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 border-0">
                   <PenSquare className="h-4 w-4 mr-2" /> Terbitkan
                 </Button>
               )}
@@ -424,6 +430,7 @@ export default function EditorPage() {
               </CardContent>
             </Card>
           ) : (
+              <>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 <div className="lg:col-span-2">
                   <Card>
@@ -437,7 +444,7 @@ export default function EditorPage() {
                             className={classNames(
                               "w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl transition-all",
                               activeTab === tab.id
-                                ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20"
+                                ? "bg-gradient-to-r from-plum to-rosegold text-white shadow-elevation-1"
                                 : "text-muted-foreground hover:bg-accent hover:text-foreground"
                             )}
                           >
@@ -462,6 +469,7 @@ export default function EditorPage() {
                       {activeTab === "detail" && renderDetail()}
                       {activeTab === "sections" && renderSections()}
                       {activeTab === "gallery" && renderGallery()}
+                      {activeTab === "love-story" && renderLoveStories()}
                       {activeTab === "music" && renderMusic()}
                       {activeTab === "gifts" && renderGifts()}
                       {activeTab === "template" && renderTemplate()}
@@ -470,16 +478,52 @@ export default function EditorPage() {
                 </div>
 
                 <div className="lg:col-span-5 lg:sticky lg:top-6">
-                  <InvitationPreview
+                  <LivePreview
                     event={event}
                     sections={sections}
                     gallery={gallery}
                     music={music}
                     gift={gift}
+                    loveStories={loveStories}
                     template={templates.find((t) => t.id === event?.template_id) || null}
                   />
                 </div>
               </div>
+
+              {/* Mobile-only live preview: floating button opens an overlay on < lg screens */}
+              {event && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowMobilePreview(true)}
+                    className="lg:hidden fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-plum to-rosegold px-4 py-2.5 text-sm font-medium text-white shadow-elevation-1"
+                    aria-label="Pratinjau live"
+                  >
+                    <Eye className="h-4 w-4" /> Pratinjau
+                  </button>
+
+                  {showMobilePreview && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
+                      <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobilePreview(false)} />
+                      <div className="relative w-full max-w-[375px] max-h-[92vh] overflow-y-auto rounded-3xl bg-background p-4 shadow-2xl">
+                        <Button variant="ghost" size="sm" className="absolute right-3 top-3" onClick={() => setShowMobilePreview(false)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <LivePreview
+                            event={event}
+                            sections={sections}
+                            gallery={gallery}
+                            music={music}
+                            gift={gift}
+                            loveStories={loveStories}
+                            template={templates.find((t) => t.id === event?.template_id) || null}
+                          />
+                        </div>
+                      </div>
+                  )}
+                </>
+              )}
+          </>
           )}
         </div>
       </DashboardLayout>
@@ -521,6 +565,7 @@ export default function EditorPage() {
           {input("Lokasi Resepsi", "reception_venue")}
           {input("Map URL Lokasi Akad", "ceremony_map_url")}
           {input("Map URL Resepsi", "reception_map_url")}
+          {input("URL Video (YouTube)", "video_url", { type: "url" })}
         </div>
         <div className="space-y-1.5">
           <Label>Alamat Resepsi</Label>
@@ -557,6 +602,7 @@ export default function EditorPage() {
           {toggle("Profil Pasangan", "couple_enabled")}
           {toggle("Detail Acara", "event_details_enabled")}
           {toggle("Galeri", "gallery_enabled")}
+          {toggle("Kisah Kami", "love_story_enabled")}
           {toggle("Video", "video_enabled")}
           {toggle("RSVP", "rsvp_enabled")}
           {toggle("Buku Tamu", "guestbook_enabled")}
@@ -712,6 +758,155 @@ export default function EditorPage() {
                 >
                   <MoveHandle photo={p} index={i} onMove={reorder} />
                 </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  function renderLoveStories() {
+    if (!event) return null
+    const saveStory = async (id: string, patch: Partial<LoveStory>) => {
+      try {
+        const res = await api.put(`/events/${event.id}/love-stories/${id}`, patch)
+        setLoveStories((list) => list.map((s) => (s.id === id ? (res.data.data as LoveStory) : s)))
+      } catch {
+        alert("Gagal menyimpan kisah")
+      }
+    }
+    const createStory = async () => {
+      try {
+        const res = await api.post(`/events/${event.id}/love-stories`, {
+          title: "Kisah Baru",
+          story: "Bagikan momen spesialmu di sini",
+          year: String(new Date().getFullYear()),
+        })
+        setLoveStories((list) => [...list, res.data.data as LoveStory])
+      } catch {
+        alert("Gagal menambah kisah")
+      }
+    }
+    const removeStory = async (id: string) => {
+      try {
+        await api.delete(`/events/${event.id}/love-stories/${id}`)
+        setLoveStories((list) => list.filter((s) => s.id !== id))
+      } catch {
+        alert("Gagal menghapus kisah")
+      }
+    }
+    const moveStory = async (index: number, dir: -1 | 1) => {
+      const target = index + dir
+      if (target < 0 || target >= loveStories.length) return
+      const cur = loveStories[index]
+      const next = loveStories[target]
+      setLoveStories((list) => {
+        const copy = [...list]
+        copy[index] = next
+        copy[target] = cur
+        return copy
+      })
+      await saveStory(cur.id, { sort_order: next.sort_order })
+      await saveStory(next.id, { sort_order: cur.sort_order })
+    }
+    const uploadStoryImage = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!event || !e.target.files || !e.target.files[0]) return
+      const form = new FormData()
+      form.append("file", e.target.files[0])
+      form.append("caption", "")
+      try {
+        const res = await api.post(`/events/${event.id}/gallery/upload`, form)
+        const photo = res.data.data as GalleryPhoto
+        await saveStory(id, { image_url: photo.image_url })
+      } catch {
+        alert("Upload gambar gagal")
+      }
+      e.target.value = ""
+    }
+    const storyInput = (s: LoveStory, key: "title" | "story" | "year" | "date" | "image_url", placeholder: string) => (
+      <input
+        key={s.id + key}
+        defaultValue={(s[key] as string) || ""}
+        onBlur={(e) => {
+          const v = e.target.value
+          if (v !== (s[key] as string)) saveStory(s.id, { [key]: v })
+        }}
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        placeholder={placeholder}
+      />
+    )
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium">Kisah Kami</h3>
+          <Button size="sm" variant="outline" onClick={createStory}>
+            <Plus className="h-4 w-4 mr-1" /> Tambah Kisah
+          </Button>
+        </div>
+        {loveStories.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-input rounded-xl">
+            <Heart className="mx-auto h-8 w-8 text-muted-foreground" />
+            <p className="mt-2 text-sm text-muted-foreground">Belum ada kisah. Tambahkan kisah perjalanan cintamu.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {loveStories.map((s, index) => (
+              <div key={s.id} className="space-y-2 rounded-lg border p-3">
+                <div className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  <div className="grid flex-1 grid-cols-2 gap-2">
+                    {storyInput(s, "year", "Tahun (mis. 2019)")}
+                    {storyInput(s, "date", "Tanggal (mis. 12 Mei 2019)")}
+                  </div>
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => moveStory(index, -1)}
+                      disabled={index === 0}
+                      className="rounded p-1 text-muted-foreground hover:bg-accent disabled:opacity-30"
+                      aria-label="Naikkan urutan"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveStory(index, 1)}
+                      disabled={index === loveStories.length - 1}
+                      className="rounded p-1 text-muted-foreground hover:bg-accent disabled:opacity-30"
+                      aria-label="Turunkan urutan"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                {storyInput(s, "title", "Judul kisah (mis. Pertemuan Pertama)")}
+                <textarea
+                  key={s.id + "story"}
+                  defaultValue={s.story || ""}
+                  onBlur={(e) => {
+                    if (e.target.value !== s.story) saveStory(s.id, { story: e.target.value })
+                  }}
+                  rows={3}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="Cerita kisah"
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="cursor-pointer inline-flex items-center gap-2 text-xs">
+                    <Upload className="h-4 w-4" /> Unggah Foto
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => uploadStoryImage(s.id, e)} />
+                  </Label>
+                  {storyInput(s, "image_url", "atau tempel URL gambar")}
+                </div>
+                {s.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={s.image_url} alt={s.title} className="h-32 w-full rounded-lg object-cover" />
+                )}
+                <div className="flex justify-end">
+                  <Button size="sm" variant="ghost" onClick={() => removeStory(s.id)} className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-1" /> Hapus
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
