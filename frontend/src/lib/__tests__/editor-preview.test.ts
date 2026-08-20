@@ -294,7 +294,7 @@ describe("buildPreviewModel — real invitation chain", () => {
     expect(model!.date).toBe("2026-12-24")
     expect(model!.gallery).toHaveLength(2)
     expect(model!.loveStories).toHaveLength(2)
-    expect(model!.verse.enabled).toBe(true)
+    expect(model!.verse?.enabled).toBe(true)
     expect(model!.events.akad?.venue).toBe("Masjid Al-Nur")
     expect(model!.events.resepsi?.venue).toBe("Hotel Astoria Ballroom")
     expect(model!.video).toBe("https://cdn.example.com/video.mp4")

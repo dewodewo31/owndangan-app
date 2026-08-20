@@ -143,7 +143,7 @@ describe("LivePreview — switching template changes themeVars", () => {
 
 describe("LivePreview — null event / template", () => {
 it("shows placeholder instead of crashing when event is null", () => {
-    const html = renderToStaticMarkup(<LivePreview event={null} template={modernTemplate} />)
+    const html = renderToStaticMarkup(<LivePreview event={null} sections={null} gallery={null} music={null} gift={null} template={modernTemplate} />)
     expect(html).toContain("Pratinjau Undangan")
     expect(html).toContain("border-dashed")
     expect(html).not.toContain("border-neutral-400")
