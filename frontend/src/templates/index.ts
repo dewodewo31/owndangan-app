@@ -1,5 +1,6 @@
 import type { TemplateDefinition } from "./types"
 import { definition as contemporaryEditorial } from "./contemporary-editorial"
+import { definition as corporate } from "./corporate"
 import { definition as islamic } from "./islamic"
 import { definition as japaneseZen } from "./japanese-zen"
 import { definition as javanese } from "./javanese"
@@ -12,6 +13,7 @@ import { definition as sundanese } from "./sundanese"
 
 export const TEMPLATES: TemplateDefinition[] = [
   contemporaryEditorial,
+  corporate,
   islamic,
   japaneseZen,
   javanese,
