@@ -4,6 +4,7 @@ export const definition: TemplateDefinition = {
   kind: "japanese-zen",
   name: "Japanese Zen",
   category: "Minimal",
+  occasions: ["pernikahan"],
   description:
     "Enso-inspired minimalism with sumi-ink typography, generous whitespace and thin organic borders. A calm, sophisticated canvas for the intimate wedding.",
   tags: ["Zen", "Minimal", "Calm"],

@@ -4,6 +4,7 @@ export const definition: TemplateDefinition = {
   kind: "romantic-elegant",
   name: "Romantic Elegant",
   category: "Classic",
+  occasions: ["pernikahan"],
   description:
     "Soft ivory palette with gold accents, romantic serif typography and graceful curved cards. A luxurious love-story feel built to sweep your loved ones away.",
   tags: ["Romantic", "Elegant", "Luxury"],

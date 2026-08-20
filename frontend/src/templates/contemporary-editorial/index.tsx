@@ -4,6 +4,7 @@ export const definition: TemplateDefinition = {
   kind: "contemporary-editorial",
   name: "Contemporary Editorial",
   category: "Editorial",
+  occasions: ["pernikahan"],
   description:
     "A high-fashion magazine aesthetic with oversized typography, asymmetric split layouts and a bold editorial red accent. For the artistic modern wedding.",
   tags: ["Editorial", "Magazine", "High-end"],

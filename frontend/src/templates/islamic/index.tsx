@@ -4,6 +4,7 @@ export const definition: TemplateDefinition = {
   kind: "islamic",
   name: "Islamic",
   category: "Islamic",
+  occasions: ["pernikahan"],
   description:
     "Elegant and spiritual Muslim wedding invitation with geometric Islamic-inspired patterns, deep teal & gold on cream, and refined serif typography.",
   tags: ["Islamic", "Elegant", "Modern"],

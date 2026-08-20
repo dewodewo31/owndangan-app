@@ -4,6 +4,7 @@ export const definition: TemplateDefinition = {
   kind: "rustic-bohemian",
   name: "Rustic Bohemian",
   category: "Rustic",
+  occasions: ["pernikahan"],
   description:
     "Warm cream textures, earthy terracotta and sage, organic botanical separators and a handmade boho spirit. Built for outdoor and garden weddings.",
   tags: ["Rustic", "Bohemian", "Natural"],

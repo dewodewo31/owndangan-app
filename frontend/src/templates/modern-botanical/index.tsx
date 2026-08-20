@@ -1,0 +1,54 @@
+import type { TemplateDefinition } from "@/templates/types"
+
+export const definition: TemplateDefinition = {
+  kind: "modern-botanical",
+  name: "Modern Botanical",
+  category: "Modern",
+  occasions: ["pernikahan"],
+  description:
+    "Warm cream canvas, sage green accents and clean typography. A calm, botanical invitation for the modern couple.",
+  tags: ["Modern", "Minimal", "Botanical", "Organic"],
+  thumbnail:
+    "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=800&q=60",
+  theme: {
+    primary: "#8A9A86",
+    secondary: "#6B7B66",
+    background: "#FDFBF7",
+    surface: "#F6F3EA",
+    text: "#2F332F",
+    muted: "#767C71",
+    accent: "#A9B6A4",
+    border: "#E7E3D8",
+    radius: "1rem",
+    fontHeading: "'Playfair Display', serif",
+    fontBody: "'Inter', sans-serif",
+    fontAccent: "'Playfair Display', serif",
+    sectionSpacing: "5.5rem",
+    contentWidth: "60rem",
+    heroHeight: "100dvh",
+    animationDuration: "0.7s",
+    animationEasing: "cubic-bezier(0.22,1,0.36,1)",
+    revealDistance: "32px",
+  },
+  nav: "overlay",
+  animation: { variant: "fade-up", stagger: true, parallax: false },
+  decoration: "botanical",
+  timelineStyle: "botanical",
+  musicPlacement: "bottom-left",
+  sections: [
+    { key: "cover", variant: "centered" },
+    { key: "quote" },
+    { key: "countdown" },
+    { key: "couple", variant: "portrait" },
+    { key: "events", variant: "cards" },
+    { key: "add-to-calendar" },
+    { key: "love-story", variant: "botanical" },
+    { key: "gallery", variant: "columns" },
+    { key: "rsvp" },
+    { key: "gift", variant: "envelope" },
+    { key: "guestbook" },
+    { key: "closing" },
+  ],
+}
+
+export default definition

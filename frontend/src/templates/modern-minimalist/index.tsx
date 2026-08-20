@@ -4,6 +4,7 @@ export const definition: TemplateDefinition = {
   kind: "modern-minimalist",
   name: "Modern Minimalist",
   category: "Modern",
+  occasions: ["pernikahan"],
   description:
     "Clean whitespace, large editorial typography, asymmetric sections and a restrained palette. Built for the modern urban wedding.",
   tags: ["Modern", "Minimal", "Editorial"],

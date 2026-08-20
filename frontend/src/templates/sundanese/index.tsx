@@ -4,6 +4,7 @@ export const definition: TemplateDefinition = {
   kind: "sundanese",
   name: "Sundanese Traditional",
   category: "Traditional",
+  occasions: ["pernikahan"],
   description:
     "Sundanese-inspired West Java elegance with a fresh leaf-green and warm natural palette, botanical accents and organic minimal composition.",
   tags: ["Sundanese", "Natural", "Elegant"],

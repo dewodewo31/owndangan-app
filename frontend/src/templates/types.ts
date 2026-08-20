@@ -99,6 +99,7 @@ export interface TemplateDefinition {
   kind: string
   name: string
   category: string
+  occasions: string[]
   description: string
   tags: string[]
   thumbnail: string

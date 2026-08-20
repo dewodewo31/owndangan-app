@@ -4,6 +4,7 @@ export const definition: TemplateDefinition = {
   kind: "luxury-black-gold",
   name: "Luxury Black & Gold",
   category: "Luxury",
+  occasions: ["pernikahan"],
   description:
     "Cinematic drama: near-black backdrop, gold accents, elegant serif typography and large imagery. Built for a high-end premium celebration.",
   tags: ["Luxury", "Black & Gold", "Premium"],

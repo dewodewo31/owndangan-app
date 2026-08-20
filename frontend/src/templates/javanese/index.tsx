@@ -4,6 +4,7 @@ export const definition: TemplateDefinition = {
   kind: "javanese",
   name: "Javanese Traditional",
   category: "Traditional",
+  occasions: ["pernikahan"],
   description:
     "Heritage Javanese elegance with batik-inspired motifs, warm maroon and earthy cream tones, and classical serif typography for a refined traditional Indonesian wedding.",
   tags: ["Traditional", "Javanese", "Heritage"],
