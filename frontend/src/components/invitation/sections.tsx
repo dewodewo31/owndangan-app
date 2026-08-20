@@ -1,11 +1,33 @@
+"use client"
+
 import { useState, useEffect, type FormEvent } from "react"
-import type { InvitationModel, SectionSpec, ThemeTokens } from "@/templates/types"
+import { z } from "zod"
+import {
+  CalendarHeart,
+  CalendarPlus,
+  Check,
+  Church,
+  Copy,
+  Download,
+  Heart,
+  MapPin,
+  Navigation,
+  PartyPopper,
+  type LucideIcon,
+} from "lucide-react"
+import type { InvitationModel, EventBlock, SectionSpec, ThemeTokens, TimelineStyle } from "@/templates/types"
 import { cn } from "@/lib/cn"
+import { Lightbox } from "./lightbox"
+import { Timeline } from "./timeline"
 
 export interface SectionProps {
   model: InvitationModel
   theme: ThemeTokens
   spec?: SectionSpec
+}
+
+function apiBase() {
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
 }
 
 function fmtDate(d?: string) {
@@ -22,6 +44,16 @@ function fmtDate(d?: string) {
 
 function photo(model: InvitationModel, i = 0) {
   return model.gallery[i]?.image_url
+}
+
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  )
 }
 
 const narrow = { maxWidth: "var(--t-content-width)", margin: "0 auto", width: "100%" }
@@ -126,6 +158,55 @@ export function Quote({ model, theme, spec }: SectionProps) {
 
 export function Couple({ model, theme, spec }: SectionProps) {
   const variant = (spec?.variant as string) || "portrait"
+  const groom = model.couple?.groom
+  const bride = model.couple?.bride
+
+  if (groom || bride) {
+    const p1 = groom?.photo || photo(model, 0)
+    const p2 = bride?.photo || photo(model, 1) || p1
+    const Person = ({ p, role, img }: { p: NonNullable<InvitationModel["couple"]>["groom"]; role: string; img?: string }) => (
+      <div className="text-center">
+        <div className="mx-auto aspect-[3/4] w-full max-w-xs overflow-hidden rounded-[var(--t-radius)]" style={{ background: theme.surface }}>
+          {img && <img src={img} alt={p?.name || role} className="h-full w-full object-cover" loading="lazy" />}
+        </div>
+        <p className="mt-5 text-xs uppercase tracking-widest" style={{ color: theme.muted }}>{role}</p>
+        {p?.name && (
+          <h4 className="mt-1 text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{p.name}</h4>
+        )}
+        {p?.nickname && <p className="text-sm" style={{ color: theme.accent }}>{p.nickname}</p>}
+        {p?.description && <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed" style={{ color: theme.muted }}>{p.description}</p>}
+        {(p?.childOrder || p?.parents) && (
+          <p className="mt-3 text-sm" style={{ color: theme.muted }}>
+            {p?.childOrder}{p?.childOrder && p?.parents ? " dari pasangan " : ""}{p?.parents}
+          </p>
+        )}
+        {p?.instagram && (
+          <a
+            href={`https://instagram.com/${p.instagram.replace(/^@/, "")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex items-center gap-1.5 text-sm"
+            style={{ color: theme.primary }}
+          >
+            <InstagramIcon className="h-4 w-4" /> @{p.instagram.replace(/^@/, "")}
+          </a>
+        )}
+      </div>
+    )
+    return (
+      <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
+        <div style={narrow} className="mx-auto">
+          <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: theme.muted }}>Mempelai</p>
+          <h3 className="mt-2 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Kedua Mempelai</h3>
+          <div className="mt-10 grid grid-cols-1 gap-10 md:grid-cols-2">
+            {groom && <Person p={groom} role="Mempelai Pria" img={p1} />}
+            {bride && <Person p={bride} role="Mempelai Wanita" img={p2} />}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   const p1 = photo(model, 0)
   const p2 = photo(model, 1) || p1
 
@@ -208,31 +289,234 @@ export function Parents({ model, theme }: SectionProps) {
 /* ---------------------------------------------------------------- COUNTDOWN */
 
 export function Countdown({ model, theme }: SectionProps) {
+  // null-first: server and client first render agree, ticking starts post-mount
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => {
+    if (!model.date) return
+    setNow(Date.now())
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [model.date])
   if (!model.date) return null
-  const target = new Date(model.date + "T" + (model.time || "09:00:00"))
-  const now = new Date()
-  const diff = Math.max(0, target.getTime() - now.getTime())
+  const target = new Date(model.date + "T" + (model.time || "09:00:00")).getTime()
+
+  const diff = now === null ? 0 : Math.max(0, target - now)
+  const done = now !== null && target <= now
   const days = Math.floor(diff / 86400000)
   const hours = Math.floor((diff % 86400000) / 3600000)
   const mins = Math.floor((diff % 3600000) / 60000)
   const secs = Math.floor((diff % 60000) / 1000)
+  const pad = (v: number) => (now === null ? "--" : String(v).padStart(2, "0"))
   const items = [
-    { v: days, l: "Hari" },
-    { v: hours, l: "Jam" },
-    { v: mins, l: "Menit" },
-    { v: secs, l: "Detik" },
+    { v: pad(days), l: "Hari" },
+    { v: pad(hours), l: "Jam" },
+    { v: pad(mins), l: "Menit" },
+    { v: pad(secs), l: "Detik" },
   ]
   return (
     <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.background }}>
       <div style={narrow} className="mx-auto">
-        <p className="mb-5 text-sm uppercase tracking-[0.3em]" style={{ color: theme.muted }}>Menuju Hari Bahagia</p>
-        <div className="flex justify-center gap-4">
-          {items.map((it) => (
-            <div key={it.l} className="min-w-[64px] rounded-[var(--t-radius)] px-3 py-4" style={{ background: theme.surface, border: `1px solid var(--t-border)` }}>
-              <div className="text-3xl font-semibold" style={{ color: theme.primary }}>{String(it.v).padStart(2, "0")}</div>
-              <div className="text-xs" style={{ color: theme.muted }}>{it.l}</div>
-            </div>
-          ))}
+        <p className="mb-5 text-sm uppercase tracking-[0.3em]" style={{ color: theme.muted }}>
+          {done ? "Hari Bahagia Telah Tiba" : "Menuju Hari Bahagia"}
+        </p>
+        {done ? (
+          <p className="text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>
+            The Day Has Come
+          </p>
+        ) : (
+          <div className="flex justify-center gap-4">
+            {items.map((it) => (
+              <div key={it.l} className="min-w-[64px] rounded-[var(--t-radius)] px-3 py-4" style={{ background: theme.surface, border: `1px solid var(--t-border)` }}>
+                <div className="text-3xl font-semibold tabular-nums" style={{ color: theme.primary }}>{it.v}</div>
+                <div className="text-xs" style={{ color: theme.muted }}>{it.l}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+/* ---------------------------------------------------------------- ADD TO CALENDAR */
+
+function eventBlocks(model: InvitationModel): NonNullable<InvitationModel["events"]["akad"]>[] {
+  return [model.events.akad, model.events.resepsi, ...(model.events.extra ?? [])].filter(
+    (b): b is NonNullable<InvitationModel["events"]["akad"]> => !!b
+  )
+}
+
+function endTime(b: EventBlock): string {
+  if (b.end_time) return b.end_time
+  if (!b.time) return "11:00:00"
+  const [h, m] = b.time.split(":").map(Number)
+  const d = new Date(0, 0, 0, (h || 0) + 2, m || 0)
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:00`
+}
+
+function fmtTime(t?: string) {
+  if (!t) return ""
+  const [h, m] = t.split(":").map(Number)
+  return `${String(h).padStart(2, "0")}.${String(m ?? 0).padStart(2, "0")}`
+}
+
+function gcalStamp(date?: string, time?: string): string {
+  if (!date) return ""
+  const [h = "09", m = "00", s = "00"] = (time || "09:00:00").split(":")
+  const dt = new Date(`${date}T${h.padStart(2, "0")}:${m.padStart(2, "0")}:${s.padStart(2, "0")}`)
+  if (Number.isNaN(dt.getTime())) return ""
+  return dt.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")
+}
+
+function googleCalendarUrl(b: EventBlock, coupleName: string): string {
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `${b.label} - ${coupleName}`,
+    dates: `${gcalStamp(b.date, b.time)}/${gcalStamp(b.date, endTime(b))}`,
+    details: b.description || "",
+    location: [b.venue, b.address].filter(Boolean).join(", "),
+  })
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  if (tz) params.set("ctz", tz)
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+function escapeIcs(v: string): string {
+  return v.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;")
+}
+
+export interface IcsEventInput {
+  date?: string
+  time?: string
+  end?: string
+  label: string
+  coupleName: string
+  venue?: string
+  address?: string
+  description?: string
+  timeZone?: string
+}
+
+export function buildIcs(opts: IcsEventInput): string {
+  const pad6 = (t: string) => t.replace(/:/g, "").padEnd(6, "0")
+  const datePart = (opts.date || "").replace(/-/g, "")
+  const tzid = opts.timeZone ? `;TZID=${opts.timeZone}` : ""
+  const start = datePart ? `DTSTART${tzid}:${datePart}T${pad6(opts.time || "09:00:00")}` : ""
+  const end = datePart ? `DTEND${tzid}:${datePart}T${pad6(opts.end || opts.time || "09:00:00")}` : ""
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")
+  const loc = [opts.venue, opts.address].filter(Boolean).join(", ")
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Owndangan//Undangan Pernikahan//ID",
+    opts.timeZone ? `X-WR-TIMEZONE:${opts.timeZone}` : "",
+    "BEGIN:VEVENT",
+    `UID:${opts.label}-${opts.date || "undangan"}@owndangan`,
+    `DTSTAMP:${stamp}`,
+    start,
+    end,
+    `SUMMARY:${escapeIcs(`${opts.label} - ${opts.coupleName}`)}`,
+    loc ? `LOCATION:${escapeIcs(loc)}` : "",
+    opts.description ? `DESCRIPTION:${escapeIcs(opts.description)}` : "",
+    "BEGIN:VALARM",
+    "TRIGGER:-PT1H",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:Reminder ${escapeIcs(opts.label)}`,
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ]
+    .filter(Boolean)
+    .join("\r\n")
+  return lines + "\r\n"
+}
+
+function icsFile(b: EventBlock, coupleName: string): string {
+  return buildIcs({
+    date: b.date,
+    time: b.time,
+    end: endTime(b),
+    label: b.label,
+    coupleName,
+    venue: b.venue,
+    address: b.address,
+    description: b.description,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  })
+}
+
+function downloadIcs(b: EventBlock, coupleName: string) {
+  const blob = new Blob([icsFile(b, coupleName)], { type: "text/calendar;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `undangan-${b.label.toLowerCase().replace(/\s+/g, "-")}.ics`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function eventIcon(b: EventBlock): LucideIcon {
+  const l = (b.label || "").toLowerCase()
+  if (l.includes("akad") || l.includes("nikah")) return Heart
+  if (l.includes("resepsi") || l.includes("pesta") || l.includes("party")) return PartyPopper
+  if (l.includes("berkat") || l.includes("gereja")) return Church
+  return CalendarPlus
+}
+
+export function AddToCalendar({ model, theme }: SectionProps) {
+  const blocks = eventBlocks(model)
+  if (blocks.length === 0) return null
+  const couple = model.names.full || "Undangan Pernikahan"
+  return (
+    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.background }}>
+      <div style={narrow} className="mx-auto">
+        <h3 className="text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>
+          Simpan Tanggalnya
+        </h3>
+        <p className="mt-2 text-sm" style={{ color: theme.muted }}>
+          Tambahkan acara ke kalender agar tidak terlewat.
+        </p>
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {blocks.map((b, i) => {
+            const Icon = eventIcon(b)
+            return (
+              <div key={i} className="rounded-[var(--t-radius)] border p-6 text-left" style={{ borderColor: "var(--t-border)", background: theme.surface }}>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: theme.primary }}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="font-semibold" style={{ color: theme.text }}>{b.label}</p>
+                    <p className="mt-1 text-sm" style={{ color: theme.muted }}>
+                      {b.date ? fmtDate(b.date) : ""} · {fmtTime(b.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}
+                    </p>
+                    {(b.venue || b.address) && (
+                      <p className="mt-1 text-sm" style={{ color: theme.muted }}>{[b.venue, b.address].filter(Boolean).join(", ")}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <a
+                    href={googleCalendarUrl(b, couple)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--t-radius)] px-3 py-2 text-xs font-semibold text-white"
+                    style={{ background: theme.primary }}
+                  >
+                    <CalendarHeart className="h-4 w-4" /> Google Calendar
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => downloadIcs(b, couple)}
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--t-radius)] border px-3 py-2 text-xs font-semibold"
+                    style={{ borderColor: "var(--t-border)", color: theme.primary }}
+                  >
+                    <Download className="h-4 w-4" /> Unduh .ics
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </section>
@@ -243,25 +527,32 @@ export function Countdown({ model, theme }: SectionProps) {
 
 export function Events({ model, theme, spec }: SectionProps) {
   const variant = (spec?.variant as string) || "cards"
-  const blocks = [model.events.akad, model.events.resepsi].filter(Boolean) as NonNullable<InvitationModel["events"]["akad"]>[]
+  const blocks = eventBlocks(model)
   if (blocks.length === 0) return null
 
   if (variant === "timeline") {
     return (
       <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
         <div style={narrow} className="mx-auto space-y-6">
-          <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Akad & Resepsi</h3>
-          {blocks.map((b, i) => (
-            <div key={i} className="flex gap-4 border-l-2 pl-4" style={{ borderColor: theme.accent }}>
-              <div>
-                <p className="font-semibold" style={{ color: theme.primary }}>{b.label}</p>
-                {b.venue && <p style={{ color: theme.text }}>{b.venue}</p>}
-                {(b.date || b.time) && <p className="text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {b.time || model.time}</p>}
-                {b.address && <p className="text-sm" style={{ color: theme.muted }}>{b.address}</p>}
-                {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" className="text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
+          <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Rangkaian Acara</h3>
+          {blocks.map((b, i) => {
+            const Icon = eventIcon(b)
+            return (
+              <div key={i} className="flex gap-4 border-l-2 pl-4" style={{ borderColor: theme.accent }}>
+                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: theme.primary }}>
+                  <Icon className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="font-semibold" style={{ color: theme.primary }}>{b.label}</p>
+                  {b.venue && <p style={{ color: theme.text }}>{b.venue}</p>}
+                  {(b.date || b.time) && <p className="text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>}
+                  {b.address && <p className="text-sm" style={{ color: theme.muted }}>{b.address}</p>}
+                  {b.description && <p className="mt-1 text-sm" style={{ color: theme.muted }}>{b.description}</p>}
+                  {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" className="text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </section>
     )
@@ -271,14 +562,21 @@ export function Events({ model, theme, spec }: SectionProps) {
     return (
       <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
         <div style={narrow} className="mx-auto grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {blocks.map((b, i) => (
-            <div key={i} className="rounded-[var(--t-radius)] p-6 text-center" style={{ background: theme.background, border: `1px solid var(--t-border)` }}>
-              <p className="text-lg font-semibold" style={{ color: theme.primary }}>{b.label}</p>
-              {b.venue && <p className="mt-2" style={{ color: theme.text }}>{b.venue}</p>}
-              <p className="text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {b.time || model.time}</p>
-              {b.address && <p className="text-sm" style={{ color: theme.muted }}>{b.address}</p>}
-            </div>
-          ))}
+          {blocks.map((b, i) => {
+            const Icon = eventIcon(b)
+            return (
+              <div key={i} className="rounded-[var(--t-radius)] p-6 text-center" style={{ background: theme.background, border: `1px solid var(--t-border)` }}>
+                <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: theme.primary }}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <p className="mt-3 text-lg font-semibold" style={{ color: theme.primary }}>{b.label}</p>
+                {b.venue && <p className="mt-2" style={{ color: theme.text }}>{b.venue}</p>}
+                <p className="text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>
+                {b.address && <p className="text-sm" style={{ color: theme.muted }}>{b.address}</p>}
+                {b.description && <p className="mx-auto mt-2 max-w-xs text-sm" style={{ color: theme.muted }}>{b.description}</p>}
+              </div>
+            )
+          })}
         </div>
       </section>
     )
@@ -288,15 +586,79 @@ export function Events({ model, theme, spec }: SectionProps) {
   return (
     <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
       <div style={narrow} className="mx-auto grid grid-cols-1 gap-6 sm:grid-cols-2">
-        {blocks.map((b, i) => (
-          <div key={i} className="rounded-[var(--t-radius)] p-6 text-center shadow-sm" style={{ background: theme.background, border: `1px solid var(--t-border)` }}>
-            <p className="text-xs uppercase tracking-widest" style={{ color: theme.muted }}>{b.label}</p>
-            <h4 className="mt-2 text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{b.venue || "—"}</h4>
-            <p className="mt-2 text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {b.time || model.time}</p>
-            {b.address && <p className="mt-1 text-sm" style={{ color: theme.muted }}>{b.address}</p>}
-            {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
-          </div>
-        ))}
+        {blocks.map((b, i) => {
+          const Icon = eventIcon(b)
+          return (
+            <div key={i} className="rounded-[var(--t-radius)] p-6 text-center shadow-sm" style={{ background: theme.background, border: `1px solid var(--t-border)` }}>
+              <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: theme.primary }}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <p className="mt-3 text-xs uppercase tracking-widest" style={{ color: theme.muted }}>{b.label}</p>
+              <h4 className="mt-1 text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{b.venue || "—"}</h4>
+              <p className="mt-2 text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>
+              {b.address && <p className="mt-1 text-sm" style={{ color: theme.muted }}>{b.address}</p>}
+              {b.description && <p className="mx-auto mt-3 max-w-xs text-sm" style={{ color: theme.muted }}>{b.description}</p>}
+              {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+/* ---------------------------------------------------------------- LOVE STORY */
+
+export function LoveStory({ model, theme, spec }: SectionProps) {
+  const variant = (spec?.variant as TimelineStyle) || "classic"
+  if (model.loveStories.length === 0) return null
+  const items = model.loveStories.map((s) => ({
+    year: s.year,
+    date: s.date,
+    title: s.title,
+    description: s.story,
+    image: s.image_url,
+  }))
+  return (
+    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
+      <h3 className="mb-10 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>
+        Kisah Kami
+      </h3>
+      <Timeline variant={variant} items={items} />
+    </section>
+  )
+}
+
+/* ---------------------------------------------------------------- VIDEO */
+
+function embedVideoUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    if (u.hostname === "youtu.be") return `https://www.youtube.com/embed/${u.pathname.slice(1)}`
+    if (u.hostname.includes("youtube.com")) {
+      const v = u.searchParams.get("v")
+      if (v) return `https://www.youtube.com/embed/${v}`
+    }
+    return url
+  } catch {
+    return url
+  }
+}
+
+export function Video({ model, theme }: SectionProps) {
+  if (!model.video || !model.sections?.video_enabled) return null
+  return (
+    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
+      <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Video</h3>
+      <div className="mx-auto aspect-video w-full max-w-3xl overflow-hidden rounded-[var(--t-radius)]" style={{ border: `1px solid ${theme.border}` }}>
+        <iframe
+          src={embedVideoUrl(model.video)}
+          title="Video Pernikahan"
+          className="h-full w-full"
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
       </div>
     </section>
   )
@@ -306,17 +668,24 @@ export function Events({ model, theme, spec }: SectionProps) {
 
 export function Gallery({ model, theme, spec }: SectionProps) {
   const variant = (spec?.variant as string) || "grid"
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   if (model.gallery.length === 0) return null
+
+  const imgCls = "w-full cursor-pointer rounded-[var(--t-radius)] object-cover transition-opacity hover:opacity-90"
+  const openAt = (i: number) => () => setLightboxIndex(i)
+  const thumb = (g: { image_url: string; caption?: string }, i: number, cls: string) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img key={g.image_url + i} src={g.image_url} alt={g.caption || "Galeri"} className={cls} loading="lazy" onClick={openAt(i)} />
+  )
 
   if (variant === "columns") {
     return (
       <section className="px-4 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
         <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Galeri</h3>
-        <div className="columns-2 gap-3 sm:columns-3" style={{ maxWidth: "var(--t-content-width)", margin: "0 auto" }}>
-          {model.gallery.map((g, i) => (
-            <img key={i} src={g.image_url} alt={g.caption || "Galeri"} className="mb-3 w-full break-inside-avoid rounded-[var(--t-radius)] object-cover" loading="lazy" />
-          ))}
+        <div className="columns-2 gap-3 sm:columns-3 lg:columns-4" style={{ maxWidth: "var(--t-content-width)", margin: "0 auto" }}>
+          {model.gallery.map((g, i) => thumb(g, i, `${imgCls} mb-3 break-inside-avoid`))}
         </div>
+        <Lightbox images={model.gallery} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onIndexChange={setLightboxIndex} />
       </section>
     )
   }
@@ -326,12 +695,13 @@ export function Gallery({ model, theme, spec }: SectionProps) {
       <section className="px-4 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
         <div className="columns-2 gap-4" style={{ maxWidth: "var(--t-content-width)", margin: "0 auto" }}>
           {model.gallery.map((g, i) => (
-            <figure key={i} className="mb-4 break-inside-avoid">
-              <img src={g.image_url} alt={g.caption || "Galeri"} className="w-full rounded-[var(--t-radius)] object-cover" loading="lazy" />
+            <figure key={g.image_url + i} className="mb-4 break-inside-avoid">
+              {thumb(g, i, "w-full rounded-[var(--t-radius)] object-cover")}
               {g.caption && <figcaption className="mt-1 text-center text-xs" style={{ color: theme.muted }}>{g.caption}</figcaption>}
             </figure>
           ))}
         </div>
+        <Lightbox images={model.gallery} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onIndexChange={setLightboxIndex} />
       </section>
     )
   }
@@ -341,10 +711,9 @@ export function Gallery({ model, theme, spec }: SectionProps) {
       <section className="py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
         <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Galeri</h3>
         <div className="flex snap-x gap-4 overflow-x-auto px-6 pb-2">
-          {model.gallery.map((g, i) => (
-            <img key={i} src={g.image_url} alt={g.caption || "Galeri"} className="h-56 w-44 flex-none snap-center rounded-[var(--t-radius)] object-cover" loading="lazy" />
-          ))}
+          {model.gallery.map((g, i) => thumb(g, i, "h-56 w-44 flex-none snap-center rounded-[var(--t-radius)] object-cover"))}
         </div>
+        <Lightbox images={model.gallery} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onIndexChange={setLightboxIndex} />
       </section>
     )
   }
@@ -354,29 +723,73 @@ export function Gallery({ model, theme, spec }: SectionProps) {
     <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
       <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Galeri</h3>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" style={{ maxWidth: "var(--t-content-width)", margin: "0 auto" }}>
-        {model.gallery.map((g, i) => (
-          <img key={i} src={g.image_url} alt={g.caption || "Galeri"} className="aspect-square w-full rounded-[var(--t-radius)] object-cover" loading="lazy" />
-        ))}
+        {model.gallery.map((g, i) => thumb(g, i, `${imgCls} aspect-square`))}
       </div>
+      <Lightbox images={model.gallery} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onIndexChange={setLightboxIndex} />
     </section>
   )
 }
 
 /* ---------------------------------------------------------------- LOCATION */
 
+function mapQuery(b: EventBlock): string {
+  return encodeURIComponent([b.address, b.venue].filter(Boolean).join(", ") || "Indonesia")
+}
+
+function embedMapUrl(b: EventBlock): string {
+  return `https://www.google.com/maps?q=${mapQuery(b)}&output=embed`
+}
+
+function mapsLink(b: EventBlock): string {
+  return `https://www.google.com/maps?q=${mapQuery(b)}`
+}
+
+function directionsLink(b: EventBlock): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${mapQuery(b)}`
+}
+
 export function Location({ model, theme }: SectionProps) {
-  const blocks = [model.events.akad, model.events.resepsi].filter(Boolean) as NonNullable<InvitationModel["events"]["akad"]>[]
+  const blocks = eventBlocks(model)
   if (blocks.length === 0) return null
   return (
     <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
       <div style={narrow} className="mx-auto space-y-4">
         <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Lokasi</h3>
+        <div className="overflow-hidden rounded-[var(--t-radius)] border" style={{ borderColor: "var(--t-border)" }}>
+          <iframe
+            src={embedMapUrl(blocks[0])}
+            title="Peta lokasi acara"
+            className="h-64 w-full"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            allowFullScreen
+          />
+        </div>
         {blocks.map((b, i) => (
           <div key={i} className="rounded-[var(--t-radius)] p-5 text-center" style={{ background: theme.background, border: `1px solid var(--t-border)` }}>
             <p className="font-semibold" style={{ color: theme.primary }}>{b.label}</p>
             {b.venue && <p style={{ color: theme.text }}>{b.venue}</p>}
             {b.address && <p className="text-sm" style={{ color: theme.muted }}>{b.address}</p>}
-            {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm underline" style={{ color: theme.primary }}>Buka di Maps</a>}
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <a
+                href={b.map_url || mapsLink(b)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-[var(--t-radius)] px-4 py-2 text-xs font-semibold text-white"
+                style={{ background: theme.primary }}
+              >
+                <MapPin className="h-4 w-4" /> Buka Google Maps
+              </a>
+              <a
+                href={directionsLink(b)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-[var(--t-radius)] border px-4 py-2 text-xs font-semibold"
+                style={{ borderColor: "var(--t-border)", color: theme.primary }}
+              >
+                <Navigation className="h-4 w-4" /> Petunjuk Arah
+              </a>
+            </div>
           </div>
         ))}
       </div>
@@ -386,9 +799,21 @@ export function Location({ model, theme }: SectionProps) {
 
 /* ---------------------------------------------------------------- RSVP */
 
+const rsvpSchema = z.object({
+  attendance: z.enum(["attending", "not_attending", "maybe"]),
+  guest_count: z.coerce.number().int().min(1).max(10),
+  message: z.string().max(1000).optional(),
+})
+
+const ATTENDANCE_OPTIONS = [
+  { value: "attending", label: "Hadir" },
+  { value: "not_attending", label: "Tidak Hadir" },
+  { value: "maybe", label: "Masih Ragu" },
+] as const
+
 export function RSVP({ model, theme }: SectionProps) {
   if (!model.sections.rsvp_enabled) return null
-  if (!model.token) {
+  if (!model.token || !model.eventId) {
     return (
       <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.surface }}>
         <div style={narrow} className="mx-auto">
@@ -402,19 +827,31 @@ export function RSVP({ model, theme }: SectionProps) {
 }
 
 function RsvpForm({ model, theme }: SectionProps) {
-  const [attendance, setAttendance] = useState("yes")
+  const [attendance, setAttendance] = useState("attending")
   const [count, setCount] = useState(1)
   const [message, setMessage] = useState("")
+  const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [err, setErr] = useState("")
+
   async function submit(e: FormEvent) {
     e.preventDefault()
     setErr("")
+    const parsed = rsvpSchema.safeParse({
+      attendance,
+      guest_count: count,
+      message: message || undefined,
+    })
+    if (!parsed.success) {
+      setErr(parsed.error.issues[0]?.message || "Data tidak valid")
+      return
+    }
+    setSubmitting(true)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/public/rsvps`, {
+      const res = await fetch(`${apiBase()}/rsvp/${model.eventId}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: model.token, attendance, guest_count: count, message }),
+        body: JSON.stringify({ token: model.token, ...parsed.data }),
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
@@ -423,27 +860,80 @@ function RsvpForm({ model, theme }: SectionProps) {
       setDone(true)
     } catch (e2) {
       setErr((e2 as Error).message)
+    } finally {
+      setSubmitting(false)
     }
   }
+
   return (
     <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.surface }}>
       <div style={narrow} className="mx-auto">
         <h3 className="text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>RSVP</h3>
         {done ? (
-          <p className="mt-4" style={{ color: theme.text }}>Terima kasih, konfirmasi Anda telah kami terima.</p>
+          <div className="mt-6">
+            <p className="text-lg" style={{ color: theme.text }}>
+              Terima kasih, konfirmasi Anda telah kami terima.
+            </p>
+            {model.guestName && (
+              <p className="mt-2 text-sm" style={{ color: theme.muted }}>Sampai jumpa, {model.guestName}!</p>
+            )}
+          </div>
         ) : (
           <form onSubmit={submit} className="mt-5 space-y-4 text-left">
             <div className="flex gap-2">
-              {["yes", "no", "maybe"].map((a) => (
-                <button key={a} type="button" onClick={() => setAttendance(a)} className="flex-1 rounded-[var(--t-radius)] border px-3 py-2 text-sm" style={{ borderColor: attendance === a ? theme.primary : "var(--t-border)", color: attendance === a ? theme.primary : theme.muted }}>
-                  {a === "yes" ? "Hadir" : a === "no" ? "Tidak" : "Ragu"}
+              {ATTENDANCE_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setAttendance(o.value)}
+                  className="flex-1 rounded-[var(--t-radius)] border px-3 py-2 text-sm"
+                  style={{
+                    borderColor: attendance === o.value ? theme.primary : "var(--t-border)",
+                    color: attendance === o.value ? theme.primary : theme.muted,
+                    background: attendance === o.value ? `${theme.primary}14` : "transparent",
+                  }}
+                >
+                  {o.label}
                 </button>
               ))}
             </div>
-            <input type="number" min={1} value={count} onChange={(e) => setCount(Number(e.target.value))} className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm" style={{ borderColor: "var(--t-border)", background: theme.background }} placeholder="Jumlah tamu" />
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm" style={{ borderColor: "var(--t-border)", background: theme.background }} placeholder="Ucapan (opsional)" rows={3} />
-            {err && <p className="text-sm text-red-500">{err}</p>}
-            <button type="submit" className="w-full rounded-[var(--t-radius)] px-4 py-2 text-sm font-semibold text-white" style={{ background: theme.primary }}>Kirim</button>
+            <div>
+              <label htmlFor="rsvp-count" className="block text-xs uppercase tracking-wider" style={{ color: theme.muted }}>
+                Jumlah tamu
+              </label>
+              <input
+                id="rsvp-count"
+                type="number"
+                min={1}
+                max={10}
+                value={count}
+                onChange={(e) => setCount(Number(e.target.value))}
+                className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm"
+                style={{ borderColor: "var(--t-border)", background: theme.background }}
+              />
+            </div>
+            <div>
+              <label htmlFor="rsvp-message" className="block text-xs uppercase tracking-wider" style={{ color: theme.muted }}>
+                Ucapan (opsional)
+              </label>
+              <textarea
+                id="rsvp-message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm"
+                style={{ borderColor: "var(--t-border)", background: theme.background }}
+                rows={3}
+              />
+            </div>
+            {err && <p role="alert" className="text-sm text-red-500">{err}</p>}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-[var(--t-radius)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              style={{ background: theme.primary }}
+            >
+              {submitting ? "Mengirim..." : "Kirim"}
+            </button>
           </form>
         )}
       </div>
@@ -453,19 +943,55 @@ function RsvpForm({ model, theme }: SectionProps) {
 
 /* ---------------------------------------------------------------- GIFT */
 
-export function Gift({ model, theme }: SectionProps) {
+function CopyAccount({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false)
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value)
+    } catch {
+      const ta = document.createElement("textarea")
+      ta.value = value
+      ta.style.position = "fixed"
+      ta.style.opacity = "0"
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand("copy")
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="inline-flex items-center gap-1.5 rounded-[var(--t-radius)] border px-3 py-1.5 text-xs font-semibold"
+      style={{ borderColor: "var(--t-border)", color: "var(--t-primary)" }}
+      aria-label={copied ? "Nomor rekening tersalin" : "Salin nomor rekening"}
+    >
+      {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? "Tersalin" : "Salin"}
+    </button>
+  )
+}
+
+export function Gift({ model, theme, spec }: SectionProps) {
   const g = model.gift
   if (!model.sections.digital_gifts_enabled || !g) return null
+  const title = (spec?.variant as string) === "envelope" ? "Amplop Digital" : "Hadiah"
   return (
     <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
       <div style={narrow} className="mx-auto space-y-4">
-        <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Hadiah</h3>
+        <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{title}</h3>
         {g.gift_message && <p className="text-center" style={{ color: theme.muted }}>{g.gift_message}</p>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(g.bank_accounts || []).map((acc, i) => (
             <div key={i} className="rounded-[var(--t-radius)] border p-4 text-sm" style={{ borderColor: "var(--t-border)", background: theme.background }}>
               <p className="font-semibold" style={{ color: theme.primary }}>{(acc.bank as string) || (acc.bank_name as string) || "Bank"} - {(acc.name as string) || (acc.account_holder as string)}</p>
-              <p style={{ color: theme.muted }}>{acc.account as string || acc.account_number as string}</p>
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <p className="font-mono tracking-wide" style={{ color: theme.muted }}>{acc.account as string || acc.account_number as string}</p>
+                <CopyAccount value={(acc.account as string) || (acc.account_number as string) || ""} />
+              </div>
             </div>
           ))}
         </div>
@@ -493,16 +1019,19 @@ function GuestbookInner({ model, theme }: SectionProps) {
   const [items, setItems] = useState(model.guestbook)
   const [name, setName] = useState("")
   const [message, setMessage] = useState("")
+  const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState("")
   useEffect(() => setItems(model.guestbook), [model.guestbook])
+  const canSubmit = !!model.eventId
   async function submit(e: FormEvent) {
     e.preventDefault()
     setErr("")
+    setSubmitting(true)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/public/guestbook`, {
+      const res = await fetch(`${apiBase()}/guestbook/${model.eventId}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: model.slug, name, message }),
+        body: JSON.stringify({ name, message }),
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
@@ -512,6 +1041,8 @@ function GuestbookInner({ model, theme }: SectionProps) {
       setItems([{ name, message, created_at: new Date().toISOString() }, ...items])
     } catch (e2) {
       setErr((e2 as Error).message)
+    } finally {
+      setSubmitting(false)
     }
   }
   return (
@@ -529,8 +1060,14 @@ function GuestbookInner({ model, theme }: SectionProps) {
         <form onSubmit={submit} className="space-y-3">
           <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm" style={{ borderColor: "var(--t-border)", background: theme.background }} placeholder="Nama" />
           <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm" style={{ borderColor: "var(--t-border)", background: theme.background }} placeholder="Ucapan" rows={3} />
-          {err && <p className="text-sm text-red-500">{err}</p>}
-          <button type="submit" className="w-full rounded-[var(--t-radius)] px-4 py-2 text-sm font-semibold text-white" style={{ background: theme.primary }}>Kirim</button>
+        {err && <p role="alert" className="text-sm text-red-500">{err}</p>}
+        {canSubmit ? (
+          <button type="submit" disabled={submitting} className="w-full rounded-[var(--t-radius)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" style={{ background: theme.primary }}>
+            {submitting ? "Mengirim..." : "Kirim"}
+          </button>
+        ) : (
+          <p className="text-center text-sm" style={{ color: theme.muted }}>Ucapan dapat dikirim melalui tautan undangan.</p>
+        )}
         </form>
       </div>
     </section>
