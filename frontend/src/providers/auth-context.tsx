@@ -69,6 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(firstError)
     }
     const authData = result.data as AuthResponse
+    if (!authData?.access_token || !authData?.refresh_token) {
+      router.push('/login?notice=sesi')
+      return
+    }
     localStorage.setItem('access_token', authData.access_token)
     localStorage.setItem('refresh_token', authData.refresh_token)
     localStorage.setItem('user', JSON.stringify(authData))

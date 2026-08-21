@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { AlertCircle, Mail, Lock, ArrowRight } from "lucide-react"
+import { AlertCircle, CheckCircle2, Mail, Lock, ArrowRight } from "lucide-react"
 import { useAuth } from "@/providers/auth-context"
 import AuthLayout from "@/components/auth/auth-layout"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [notice, setNotice] = useState("")
+
+  useEffect(() => {
+    if (window.location.search.includes("notice=sesi")) {
+      setNotice("Registrasi berhasil. Silakan masuk dengan akun Anda.")
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,6 +46,12 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-8">
+        {notice && (
+          <div className="mb-4 flex items-start gap-2.5 p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm">
+            <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{notice}</span>
+          </div>
+        )}
         {error && (
           <div className="mb-4 flex items-start gap-2.5 p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
