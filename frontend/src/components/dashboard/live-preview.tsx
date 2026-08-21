@@ -111,6 +111,7 @@ export function LivePreview({
               model={model}
               heroImage={heroImage}
               primaryColor={primaryColor}
+              lockBodyScroll={false}
             />
           </div>
         </div>
