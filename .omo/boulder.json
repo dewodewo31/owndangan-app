@@ -1,0 +1,18 @@
+{
+  "schema_version": 2,
+  "active_work_id": "work_owndangan_feature_wave",
+  "works": {
+    "work_owndangan_feature_wave": {
+      "work_id": "work_owndangan_feature_wave",
+      "active_plan": "/home/userswift/projects/owndangan-app/.omo/plans/owndangan-feature-wave.md",
+      "plan_name": "owndangan-feature-wave",
+      "status": "complete",
+      "started_at": "2026-08-20T20:40:00Z",
+      "updated_at": "2026-08-21T12:49:03Z",
+      "session_ids": [
+        "opencode:ses_fe194ecd2ffek6AfB29ZOMQxNQ"
+      ],
+      "note": "COMPLETE: all 34 todos + F1-F4 approved by user sign-off. 38 commits on 7d31e8c; evidence in .omo/evidence/owndangan-feature-wave/. Accepted deviations: billing link /#pricing (no #paket anchor); docs at root prd.md + docs/context/*; WA number in marketing.ts is a placeholder \u2014 replace before production. Pre-existing backend failures (4) documented in task-10 evidence, untouched."
+    }
+  }
+}
