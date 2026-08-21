@@ -1,0 +1,13 @@
+task: owndangan-feature-wave todo 32 — split public and internal documentation
+files:
+  docs/integrations/ -> docs/internal/integrations/ via git mv (email, midtrans, storage, whatsapp)
+  docs/README.md — Integrations links updated + split rule documented ("root/topical = product/architecture overview; implementation details under docs/internal/")
+  docs/api/README.md — reference rewritten (was a stale machine-specific absolute path pointing at docs/integrations/midtrans.md; now relative docs/internal/integrations/midtrans.md)
+  docs/architecture/payment-architecture.md — reference rewritten
+  docs/documentation-map.md — references rewritten
+gates:
+  grep "docs/integrations" across *.md outside .omo -> CLEAN (no stale references)
+  find docs -type f -> integrations content now under docs/internal/integrations/
+notes:
+  - No doc content deleted; public-facing product docs (prd.md at repo root, docs/context/*) untouched.
+  - Plan named only docs/integrations explicitly; other folders left in place per minimal-change rule.

@@ -114,7 +114,7 @@ Backend recomputes and compares. Mismatch → reject webhook.
 ## Related Documentation
 
 - `docs/modules/payments.md`
-- `docs/integrations/midtrans.md`
+- `docs/internal/integrations/midtrans.md`
 - `docs/security/payment-security.md`
 - `docs/security/webhook-security.md`
 - `docs/testing/payment-testing.md`

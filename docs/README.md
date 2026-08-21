@@ -82,10 +82,12 @@ See `docs/backend/project-structure.md`.
 
 ## Integrations
 
-- Midtrans — `docs/integrations/midtrans.md`
-- WhatsApp — `docs/integrations/whatsapp.md`
-- Object Storage — `docs/integrations/storage.md`
-- Email — `docs/integrations/email.md`
+> Split rule: `docs/` root and topical folders hold product/architecture overview documentation; implementation-level details live under `docs/internal/`.
+
+- Midtrans — `docs/internal/integrations/midtrans.md`
+- WhatsApp — `docs/internal/integrations/whatsapp.md`
+- Object Storage — `docs/internal/integrations/storage.md`
+- Email — `docs/internal/integrations/email.md`
 
 ## Security
 

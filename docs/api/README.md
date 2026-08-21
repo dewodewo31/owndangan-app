@@ -54,4 +54,4 @@ All endpoints follow the response conventions defined in [conventions.md](./conv
 
 - [API Conventions](./conventions.md) — Standard formats, pagination, error codes
 - [Database Schema](/run/media/oweedd/New Volume/app-owndangan/docs/database/schema.md) — Data model reference
-- [Midtrans Integration](/run/media/oweedd/New Volume/app-owndangan/docs/integrations/midtrans.md) — Payment gateway specifics
+- [Midtrans Integration](/run/media/oweedd/New Volume/app-owndangan/docs/internal/integrations/midtrans.md) — Payment gateway specifics

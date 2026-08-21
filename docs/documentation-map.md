@@ -58,7 +58,7 @@ Cross-reference mapping for each feature across documentation layers.
 | Database | `docs/database/schema.md` (transactions table) |
 | Frontend | `docs/frontend/user-dashboard.md` (billing) |
 | Backend | `docs/backend/services.md` |
-| Integration | `docs/integrations/midtrans.md` |
+| Integration | `docs/internal/integrations/midtrans.md` |
 | Security | `docs/security/payment-security.md`, `docs/security/webhook-security.md` |
 | Testing | `docs/testing/payment-testing.md` |
 
@@ -111,7 +111,7 @@ Cross-reference mapping for each feature across documentation layers.
 | Layer | Document |
 |-------|----------|
 | Module | `docs/modules/whatsapp.md` |
-| Integration | `docs/integrations/whatsapp.md` |
+| Integration | `docs/internal/integrations/whatsapp.md` |
 | Frontend | `docs/frontend/user-dashboard.md` (guests) |
 | Backend | `docs/backend/services.md` |
 
@@ -154,7 +154,7 @@ Cross-reference mapping for each feature across documentation layers.
 |-------|----------|
 | Module | `docs/modules/gallery.md` |
 | Database | `docs/database/schema.md` (gallery_photos table) |
-| Integration | `docs/integrations/storage.md` |
+| Integration | `docs/internal/integrations/storage.md` |
 | Frontend | `docs/frontend/invitation-rendering.md` |
 | Backend | `docs/backend/services.md` |
 
