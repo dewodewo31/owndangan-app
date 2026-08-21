@@ -1,0 +1,3 @@
+test command: npx jest src/templates/__tests__/night-tokens.test.ts (exit 0)
+build command: npm run build (exit 0)
+assertion: grep -l "night:" frontend/src/templates/*/index.tsx | wc -l = 11 (all 11 template files contain "night:")

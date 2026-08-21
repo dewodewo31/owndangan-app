@@ -8,6 +8,9 @@ export type SectionKey =
   | "parents"
   | "countdown"
   | "events"
+  | "add-to-calendar"
+  | "love-story"
+  | "video"
   | "gallery"
   | "location"
   | "rsvp"
@@ -21,24 +24,41 @@ export interface EventBlock {
   address?: string
   map_url?: string
   time?: string
+  end_time?: string
   date?: string
+  description?: string
+  icon?: string
+}
+
+export interface CoupleProfile {
+  name?: string
+  nickname?: string
+  description?: string
+  childOrder?: string
+  parents?: string
+  instagram?: string
+  photo?: string
 }
 
 export interface InvitationModel {
   slug: string
+  eventId?: string
   names: { groom?: string; bride?: string; full: string }
   parents: { groom?: string; bride?: string }
   date?: string // YYYY-MM-DD
   time?: string
-  events: { akad?: EventBlock; resepsi?: EventBlock }
+  events: { akad?: EventBlock; resepsi?: EventBlock; extra?: EventBlock[] }
+  couple?: { groom?: CoupleProfile; bride?: CoupleProfile }
   opening?: string
   closing?: string
   verse?: { enabled: boolean; religion?: string; text?: string; source?: string }
   dressCode?: string
   gallery: { image_url: string; caption?: string }[]
+  loveStories: { title: string; story: string; year?: string; date?: string; image_url?: string }[]
+  video?: string | null
   guestbook: { name: string; message: string; created_at?: string }[]
   gift?: {
-    bank_accounts: Array<Record<string, unknown>>
+    bank_accounts?: Array<Record<string, unknown>>
     ewallet?: Record<string, unknown>
     qris_image_url?: string
     gift_message?: string
@@ -46,6 +66,7 @@ export interface InvitationModel {
   music?: { title: string; file_url?: string; preset?: string } | null
   sections: Record<string, boolean>
   token?: string | null
+  guestName?: string
 }
 
 export interface ThemeTokens {
@@ -95,6 +116,16 @@ export type DecorationStyle =
   | "garden"
   | "editorial"
 
+export type TimelineStyle =
+  | "classic"
+  | "editorial"
+  | "minimal"
+  | "romantic"
+  | "luxury"
+  | "botanical"
+  | "modern"
+  | "zen"
+
 export interface TemplateDefinition {
   kind: string
   name: string
@@ -104,8 +135,11 @@ export interface TemplateDefinition {
   tags: string[]
   thumbnail: string
   theme: ThemeTokens
+  night?: Partial<ThemeTokens>
   nav: NavStyle
   animation: { variant: RevealVariant; stagger: boolean; parallax: boolean }
   sections: SectionSpec[]
   decoration: DecorationStyle
+  timelineStyle: TimelineStyle
+  musicPlacement?: "top-left" | "bottom-left"
 }
