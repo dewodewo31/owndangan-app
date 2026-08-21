@@ -15,6 +15,7 @@ import (
 	"github.com/owndangan/backend/internal/repository"
 	"github.com/owndangan/backend/internal/service"
 	"github.com/owndangan/backend/internal/service/admin"
+	"github.com/owndangan/backend/internal/service/email"
 	"github.com/owndangan/backend/internal/service/guest"
 	"github.com/owndangan/backend/internal/service/guestbook"
 	"github.com/owndangan/backend/internal/service/rsvp"
@@ -47,6 +48,7 @@ type Dependencies struct {
 	WebhookIdempotencyRepo repository.WebhookIdempotencyRepository
 	JWTService             *jwt.Service
 	Storage                storage.Storage
+	EmailSender            service.EmailSender
 }
 
 func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.Logger) *Server {
@@ -84,9 +86,13 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 	subSvc := service.NewSubscriptionService(deps.SubscriptionRepo, deps.PackageRepo, deps.TransactionRepo, deps.UserRepo, deps.AuditLogRepo)
 	subHandler := handler.NewSubscriptionHandler(subSvc)
 
+	emailSender := deps.EmailSender
+	if emailSender == nil {
+		emailSender = email.NewService(cfg.SMTP, log)
+	}
 	paySvc := service.NewPaymentService(
 		deps.TransactionRepo, deps.PackageRepo, deps.UserRepo, deps.AuditLogRepo,
-		deps.WebhookIdempotencyRepo, cfg.Midtrans, subSvc,
+		deps.WebhookIdempotencyRepo, cfg.Midtrans, subSvc, emailSender,
 	)
 	payHandler := handler.NewPaymentHandler(paySvc)
 

@@ -50,9 +50,14 @@ func setupPaymentService(t *testing.T) (*service.PaymentService, *mockPackageRep
 		&mockWebhookIdempotencyRepo{},
 		config.MidtransConfig{ServerKey: "test-server-key"},
 		subSvc,
+		noopEmailSender{},
 	)
 	return paySvc, pkgRepo, txnRepo
 }
+
+type noopEmailSender struct{}
+
+func (noopEmailSender) SendAsync(to, subject, htmlBody string) {}
 
 func TestPayment_CreateSnapTransaction(t *testing.T) {
 	svc, pkgRepo, _ := setupPaymentService(t)

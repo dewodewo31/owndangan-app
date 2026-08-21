@@ -21,6 +21,7 @@ import (
 	"github.com/owndangan/backend/internal/model"
 	"github.com/owndangan/backend/internal/pkg/jwt"
 	"github.com/owndangan/backend/internal/repository"
+	"github.com/owndangan/backend/internal/service"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
@@ -28,6 +29,7 @@ import (
 )
 
 var testServer *api.Server
+var testEmailSender service.EmailSender
 
 func setupAuthTestServer(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -46,6 +48,7 @@ func setupAuthTestServer(t *testing.T) *gorm.DB {
 		&model.RSVP{}, &model.GuestbookMessage{}, &model.DigitalGift{},
 		&model.GalleryPhoto{}, &model.AuditLog{}, &model.AnalyticsEvent{},
 		&model.WebhookIdempotency{}, &model.Template{}, &model.Music{},
+		&model.LoveStory{},
 	)
 
 	cfg := &config.Config{
@@ -73,12 +76,14 @@ func setupAuthTestServer(t *testing.T) *gorm.DB {
 		GuestRepo:              repository.NewGuestRepository(db),
 		RSVPRepo:               repository.NewRSVPRepository(db),
 		GuestbookRepo:          repository.NewGuestbookRepository(db),
+		LoveStoryRepo:          repository.NewLoveStoryRepository(db),
 		DigitalGiftRepo:        repository.NewDigitalGiftRepository(db),
 		GalleryPhotoRepo:       repository.NewGalleryPhotoRepository(db),
 		AnalyticsRepo:          repository.NewAnalyticsEventRepository(db),
 		AuditLogRepo:           repository.NewAuditLogRepository(db),
 		WebhookIdempotencyRepo: repository.NewWebhookIdempotencyRepository(db),
 		JWTService:             jwtSvc,
+		EmailSender:            testEmailSender,
 	}
 
 	if err := database.SeedPackages(db); err != nil {

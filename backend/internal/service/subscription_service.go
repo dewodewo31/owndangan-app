@@ -65,25 +65,25 @@ func (s *SubscriptionService) GetUserSubscriptionOrDefault(ctx context.Context, 
 	return toSubscriptionResponse(sub, pkg), nil
 }
 
-func (s *SubscriptionService) ActivateOnSettlement(ctx context.Context, transactionID uuid.UUID) error {
+func (s *SubscriptionService) ActivateOnSettlement(ctx context.Context, transactionID uuid.UUID) (*model.Subscription, error) {
 	txn, err := s.txnRepo.GetByID(ctx, transactionID)
 	if err != nil || txn == nil {
-		return fmt.Errorf("transaction not found: %w", errors.ErrNotFound)
+		return nil, fmt.Errorf("transaction not found: %w", errors.ErrNotFound)
 	}
 	if txn.Status != "settlement" {
-		return fmt.Errorf("transaction not settled: %w", errors.ErrConflict)
+		return nil, fmt.Errorf("transaction not settled: %w", errors.ErrConflict)
 	}
 
 	pkg, err := s.pkgRepo.GetByID(ctx, txn.PackageID)
 	if err != nil || pkg == nil {
-		return fmt.Errorf("package not found: %w", errors.ErrNotFound)
+		return nil, fmt.Errorf("package not found: %w", errors.ErrNotFound)
 	}
 
 	now := time.Now()
 	expiresAt := computeExpiry(pkg, now)
 
 	if err := s.subRepo.DeactivateActive(ctx, txn.UserID); err != nil {
-		return fmt.Errorf("deactivate existing subscription: %w", err)
+		return nil, fmt.Errorf("deactivate existing subscription: %w", err)
 	}
 
 	newSub := &model.Subscription{
@@ -95,7 +95,7 @@ func (s *SubscriptionService) ActivateOnSettlement(ctx context.Context, transact
 		ExpiresAt:     expiresAt,
 	}
 	if err := s.subRepo.Create(ctx, newSub); err != nil {
-		return fmt.Errorf("create subscription: %w", err)
+		return nil, fmt.Errorf("create subscription: %w", err)
 	}
 
 	_ = s.auditRepo.Create(ctx, &model.AuditLog{
@@ -106,7 +106,7 @@ func (s *SubscriptionService) ActivateOnSettlement(ctx context.Context, transact
 		Metadata:    datatypesJSON(map[string]interface{}{"transaction_id": txn.ID, "package_id": txn.PackageID}),
 	})
 
-	return nil
+	return newSub, nil
 }
 
 func (s *SubscriptionService) Extend(ctx context.Context, subID uuid.UUID, days int) error {

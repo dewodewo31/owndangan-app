@@ -6,6 +6,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,7 +16,12 @@ import (
 	"github.com/owndangan/backend/internal/model"
 	"github.com/owndangan/backend/internal/pkg/errors"
 	"github.com/owndangan/backend/internal/repository"
+	"github.com/owndangan/backend/internal/service/email"
 )
+
+type EmailSender interface {
+	SendAsync(to, subject, htmlBody string)
+}
 
 type PaymentService struct {
 	txnRepo         repository.TransactionRepository
@@ -25,12 +31,13 @@ type PaymentService struct {
 	idempotencyRepo repository.WebhookIdempotencyRepository
 	midtransKey     string
 	subService      *SubscriptionService
+	emailSvc        EmailSender
 }
 
 func NewPaymentService(txnRepo repository.TransactionRepository, pkgRepo repository.PackageRepository,
 	userRepo repository.UserRepository, auditRepo repository.AuditLogRepository,
 	idempotencyRepo repository.WebhookIdempotencyRepository,
-	cfg config.MidtransConfig, subService *SubscriptionService) *PaymentService {
+	cfg config.MidtransConfig, subService *SubscriptionService, emailSvc EmailSender) *PaymentService {
 	return &PaymentService{
 		txnRepo:           txnRepo,
 		pkgRepo:           pkgRepo,
@@ -39,6 +46,7 @@ func NewPaymentService(txnRepo repository.TransactionRepository, pkgRepo reposit
 		idempotencyRepo:   idempotencyRepo,
 		midtransKey:       cfg.ServerKey,
 		subService:        subService,
+		emailSvc:          emailSvc,
 	}
 }
 
@@ -164,9 +172,11 @@ func (s *PaymentService) HandleWebhook(ctx context.Context, payload dto.Midtrans
 	}
 
 	if internalStatus == "settlement" {
-		if err := s.subService.ActivateOnSettlement(ctx, txn.ID); err != nil {
+		sub, err := s.subService.ActivateOnSettlement(ctx, txn.ID)
+		if err != nil {
 			return fmt.Errorf("activate subscription: %w", err)
 		}
+		s.sendPaymentSuccessEmail(ctx, txn, sub)
 	}
 
 	_ = s.idempotencyRepo.MarkProcessed(ctx, payload.TransactionID, payload.OrderID, internalStatus)
@@ -223,6 +233,43 @@ func mapMidtransStatus(status string) string {
 func hashUserID(id string) string {
 	h := sha512.Sum512([]byte(id))
 	return hex.EncodeToString(h[:])[:4]
+}
+
+// sendPaymentSuccessEmail is best-effort: any lookup/render failure is dropped,
+// delivery happens async via SendAsync — never fails the webhook.
+func (s *PaymentService) sendPaymentSuccessEmail(ctx context.Context, txn *model.Transaction, sub *model.Subscription) {
+	if s.emailSvc == nil || sub == nil {
+		return
+	}
+	user, err := s.userRepo.GetByID(ctx, txn.UserID)
+	if err != nil || user == nil {
+		return
+	}
+	pkg, err := s.pkgRepo.GetByID(ctx, txn.PackageID)
+	if err != nil || pkg == nil {
+		return
+	}
+	html, err := email.RenderPaymentSuccess(email.PaymentSuccessData{
+		Name:       user.Name,
+		PlanName:   pkg.Name,
+		Amount:     formatIDR(txn.GrossAmount),
+		ExpiryDate: sub.ExpiresAt.Format("2 January 2006"),
+	})
+	if err != nil {
+		return
+	}
+	s.emailSvc.SendAsync(user.Email, fmt.Sprintf("Pembayaran berhasil — %s aktif!", pkg.Name), html)
+}
+
+func formatIDR(amount int64) string {
+	s := strconv.FormatInt(amount, 10)
+	var out []string
+	for len(s) > 3 {
+		out = append([]string{s[len(s)-3:]}, out...)
+		s = s[:len(s)-3]
+	}
+	out = append([]string{s}, out...)
+	return strings.Join(out, ".")
 }
 
 func toTransactionResponse(txn *model.Transaction) dto.TransactionResponse {

@@ -194,7 +194,7 @@ func NewWebhookIdempotencyRepository(db *gorm.DB) WebhookIdempotencyRepository {
 func (r *webhookIdempotencyRepo) IsProcessed(ctx context.Context, requestID string) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&model.WebhookIdempotency{}).
-		Where("request_id = ?", requestID).Count(&count).Error
+		Where("transaction_id = ?", requestID).Count(&count).Error
 	return count > 0, err
 }
 
