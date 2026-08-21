@@ -57,14 +57,14 @@ export function ShareButton({
       <button
         onClick={handleShare}
         className={btn}
-        style={{ background: theme.primary, color: "#fff" }}
+        style={{ background: "var(--t-primary)", color: "var(--t-on-primary)" }}
         aria-label="Bagikan undangan"
       >
         <Share2 className="h-4 w-4" />
         Bagikan Undangan
       </button>
 
-      <button onClick={copyUrl} className={btn} style={{ border: `1px solid var(--t-border)`, color: theme.text }} aria-label="Salin tautan">
+      <button onClick={copyUrl} className={btn} style={{ border: `1px solid var(--t-border)`, color: "var(--t-text)" }} aria-label="Salin tautan">
         {copied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
         {copied ? "Tautan disalin" : "Salin Tautan"}
       </button>

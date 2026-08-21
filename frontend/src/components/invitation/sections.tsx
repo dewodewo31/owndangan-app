@@ -92,15 +92,15 @@ export function Cover({ model, theme, spec }: SectionProps) {
 
   if (variant === "minimal") {
     return (
-      <header className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center" style={{ background: theme.background }}>
-        <p className="mb-4 text-sm uppercase tracking-[0.4em]" style={{ color: theme.muted }}>
+      <header className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center" style={{ background: "var(--t-background)" }}>
+        <p className="mb-4 text-sm uppercase tracking-[0.4em]" style={{ color: "var(--t-muted)" }}>
           The Wedding Of
         </p>
-        <h1 className="text-5xl leading-tight sm:text-7xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>
+        <h1 className="text-5xl leading-tight sm:text-7xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>
           {names}
         </h1>
-        <div className="mt-8 h-px w-24" style={{ background: theme.accent }} />
-        <p className="mt-6 text-lg" style={{ color: theme.muted }}>{fmtDate(model.date)}</p>
+        <div className="mt-8 h-px w-24" style={{ background: "var(--t-accent)" }} />
+        <p className="mt-6 text-lg" style={{ color: "var(--t-muted)" }}>{fmtDate(model.date)}</p>
       </header>
     )
   }
@@ -108,13 +108,13 @@ export function Cover({ model, theme, spec }: SectionProps) {
   if (variant === "split") {
     return (
       <header className="grid min-h-[88vh] grid-cols-1 md:grid-cols-2">
-        <div className="relative min-h-[40vh] md:min-h-full" style={{ backgroundImage: img ? `url(${img})` : undefined, backgroundColor: theme.surface, backgroundSize: "cover", backgroundPosition: "center" }} />
-        <div className="flex flex-col justify-center px-8 py-16 md:px-14" style={{ background: theme.background }}>
-          <p className="mb-3 text-xs uppercase tracking-[0.35em]" style={{ color: theme.muted }}>Undangan Pernikahan</p>
-          <h1 className="text-5xl leading-tight sm:text-6xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{names}</h1>
-          <div className="my-6 h-px w-20" style={{ background: theme.accent }} />
-          <p className="text-lg" style={{ color: theme.muted }}>{fmtDate(model.date)}</p>
-          <p className="mt-2" style={{ color: theme.muted }}>{model.time}</p>
+        <div className="relative min-h-[40vh] md:min-h-full" style={{ backgroundImage: img ? `url(${img})` : undefined, backgroundColor: "var(--t-surface)", backgroundSize: "cover", backgroundPosition: "center" }} />
+        <div className="flex flex-col justify-center px-8 py-16 md:px-14" style={{ background: "var(--t-background)" }}>
+          <p className="mb-3 text-xs uppercase tracking-[0.35em]" style={{ color: "var(--t-muted)" }}>Undangan Pernikahan</p>
+          <h1 className="text-5xl leading-tight sm:text-6xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>{names}</h1>
+          <div className="my-6 h-px w-20" style={{ background: "var(--t-accent)" }} />
+          <p className="text-lg" style={{ color: "var(--t-muted)" }}>{fmtDate(model.date)}</p>
+          <p className="mt-2" style={{ color: "var(--t-muted)" }}>{model.time}</p>
         </div>
       </header>
     )
@@ -124,15 +124,15 @@ export function Cover({ model, theme, spec }: SectionProps) {
     const overlay = variant === "cinematic" ? "rgba(0,0,0,0.55)" : variant === "editorial" ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.3)"
     const align = variant === "editorial" ? "items-start text-left pl-8 md:pl-24" : "items-center text-center"
     return (
-      <header className={cn("relative flex min-h-[var(--t-hero-height)] flex-col justify-end px-6 pb-20 pt-32 text-white", align)} style={{ backgroundImage: img ? `url(${img})` : undefined, backgroundColor: theme.background, backgroundSize: "cover", backgroundPosition: "center" }}>
-        <div className="absolute inset-0" style={{ background: overlay }} />
+      <header className={cn("relative flex min-h-[var(--t-hero-height)] flex-col justify-end px-6 pb-20 pt-32", img ? "text-white" : "", align)} style={{ backgroundImage: img ? `url(${img})` : undefined, backgroundColor: "var(--t-background)", backgroundSize: "cover", backgroundPosition: "center" }}>
+        {img && <div className="absolute inset-0" style={{ background: overlay }} />}
         {variant === "framed" && (
           <div className="pointer-events-none absolute inset-5 border" style={{ borderColor: "rgba(255,255,255,0.5)" }} />
         )}
         <div className="relative z-10" style={{ maxWidth: "var(--t-content-width)" }}>
-          {variant === "editorial" && <p className="mb-2 text-xs uppercase tracking-[0.4em] text-white/70">Wedding</p>}
+          {variant === "editorial" && <p className={cn("mb-2 text-xs uppercase tracking-[0.4em]", img ? "text-white/70" : "")}>Wedding</p>}
           <h1 className={cn("text-6xl leading-none sm:text-8xl", variant === "editorial" ? "font-black" : "")} style={{ fontFamily: "var(--t-font-heading)" }}>{names}</h1>
-          <p className="mt-5 text-lg text-white/85">{fmtDate(model.date)} · {model.time}</p>
+          <p className={cn("mt-5 text-lg", img ? "text-white/85" : "")}>{fmtDate(model.date)} · {model.time}</p>
         </div>
       </header>
     )
@@ -140,12 +140,12 @@ export function Cover({ model, theme, spec }: SectionProps) {
 
   // default: centered
   return (
-    <header className="relative flex min-h-[var(--t-hero-height)] flex-col items-center justify-center px-6 text-center text-white" style={{ backgroundImage: img ? `url(${img})` : undefined, backgroundColor: theme.background, backgroundSize: "cover", backgroundPosition: "center" }}>
-      <div className="absolute inset-0 bg-black/40" />
+    <header className={cn("relative flex min-h-[var(--t-hero-height)] flex-col items-center justify-center px-6 text-center", img ? "text-white" : "")} style={{ backgroundImage: img ? `url(${img})` : undefined, backgroundColor: "var(--t-background)", backgroundSize: "cover", backgroundPosition: "center" }}>
+      {img && <div className="absolute inset-0 bg-black/40" />}
       <div className="relative z-10" style={{ maxWidth: "var(--t-content-width)" }}>
-        <p className="mb-3 text-sm uppercase tracking-[0.4em] text-white/80">The Wedding Of</p>
+        <p className={cn("mb-3 text-sm uppercase tracking-[0.4em]", img ? "text-white/80" : "")}>The Wedding Of</p>
         <h1 className="text-6xl leading-tight sm:text-7xl" style={{ fontFamily: "var(--t-font-heading)" }}>{names}</h1>
-        <p className="mt-6 text-lg text-white/85">{fmtDate(model.date)}</p>
+        <p className={cn("mt-6 text-lg", img ? "text-white/85" : "")}>{fmtDate(model.date)}</p>
       </div>
     </header>
   )
@@ -156,22 +156,22 @@ export function Cover({ model, theme, spec }: SectionProps) {
 export function Quote({ model, theme, spec }: SectionProps) {
   if (model.verse?.enabled && model.verse.text) {
     return (
-      <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.surface }}>
+      <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-surface)" }}>
         <div style={narrow} className="mx-auto">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: theme.primary }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: "var(--t-primary)" }}>
             {model.verse.religion === "alkitab" ? "Alkitab" : "Al-Quran"}
           </p>
           <p className="mt-4 text-xl italic leading-relaxed" style={{ fontFamily: "var(--t-font-accent)" }}>{model.verse.text}</p>
-          {model.verse.source && <p className="mt-3 text-sm" style={{ color: theme.primary }}>{model.verse.source}</p>}
+          {model.verse.source && <p className="mt-3 text-sm" style={{ color: "var(--t-primary)" }}>{model.verse.source}</p>}
         </div>
       </section>
     )
   }
   if (model.opening) {
     return (
-      <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.surface }}>
+      <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-surface)" }}>
         <div style={narrow} className="mx-auto">
-          <p className="text-lg italic leading-relaxed" style={{ color: theme.muted }}>{model.opening}</p>
+          <p className="text-lg italic leading-relaxed" style={{ color: "var(--t-muted)" }}>{model.opening}</p>
         </div>
       </section>
     )
@@ -191,17 +191,17 @@ export function Couple({ model, theme, spec }: SectionProps) {
     const p2 = bride?.photo || photo(model, 1) || p1
     const Person = ({ p, role, img }: { p: NonNullable<InvitationModel["couple"]>["groom"]; role: string; img?: string }) => (
       <div className="text-center">
-        <div className="mx-auto aspect-[3/4] w-full max-w-xs overflow-hidden rounded-[var(--t-radius)]" style={{ background: theme.surface }}>
+        <div className="mx-auto aspect-[3/4] w-full max-w-xs overflow-hidden rounded-[var(--t-radius)]" style={{ background: "var(--t-surface)" }}>
           {img && <img src={img} alt={p?.name || role} className="h-full w-full object-cover" loading="lazy" />}
         </div>
-        <p className="mt-5 text-xs uppercase tracking-widest" style={{ color: theme.muted }}>{role}</p>
+        <p className="mt-5 text-xs uppercase tracking-widest" style={{ color: "var(--t-muted)" }}>{role}</p>
         {p?.name && (
-          <h4 className="mt-1 text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{p.name}</h4>
+          <h4 className="mt-1 text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>{p.name}</h4>
         )}
-        {p?.nickname && <p className="text-sm" style={{ color: theme.accent }}>{p.nickname}</p>}
-        {p?.description && <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed" style={{ color: theme.muted }}>{p.description}</p>}
+        {p?.nickname && <p className="text-sm" style={{ color: "var(--t-accent)" }}>{p.nickname}</p>}
+        {p?.description && <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed" style={{ color: "var(--t-muted)" }}>{p.description}</p>}
         {(p?.childOrder || p?.parents) && (
-          <p className="mt-3 text-sm" style={{ color: theme.muted }}>
+          <p className="mt-3 text-sm" style={{ color: "var(--t-muted)" }}>
             {p?.childOrder}{p?.childOrder && p?.parents ? " dari pasangan " : ""}{p?.parents}
           </p>
         )}
@@ -211,7 +211,7 @@ export function Couple({ model, theme, spec }: SectionProps) {
             target="_blank"
             rel="noreferrer"
             className="mt-4 inline-flex items-center gap-1.5 text-sm"
-            style={{ color: theme.primary }}
+            style={{ color: "var(--t-primary)" }}
           >
             <InstagramIcon className="h-4 w-4" /> @{p.instagram.replace(/^@/, "")}
           </a>
@@ -219,10 +219,10 @@ export function Couple({ model, theme, spec }: SectionProps) {
       </div>
     )
     return (
-      <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
+      <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-background)" }}>
         <div style={narrow} className="mx-auto">
-          <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: theme.muted }}>Mempelai</p>
-          <h3 className="mt-2 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Kedua Mempelai</h3>
+          <p className="text-center text-xs uppercase tracking-[0.3em]" style={{ color: "var(--t-muted)" }}>Mempelai</p>
+          <h3 className="mt-2 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>Kedua Mempelai</h3>
           <div className="mt-10 grid grid-cols-1 gap-10 md:grid-cols-2">
             {groom && <Person p={groom} role="Mempelai Pria" img={p1} />}
             {bride && <Person p={bride} role="Mempelai Wanita" img={p2} />}
@@ -237,12 +237,12 @@ export function Couple({ model, theme, spec }: SectionProps) {
 
   if (variant === "stacked") {
     return (
-      <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.background }}>
+      <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-background)" }}>
         <div style={narrow} className="mx-auto space-y-8">
           {p1 && <img src={p1} alt={model.names.full} className="mx-auto aspect-[4/5] w-full max-w-md rounded-[var(--t-radius)] object-cover shadow-lg" loading="lazy" />}
           <div>
-            <h2 className="text-4xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{model.names.full}</h2>
-            <p className="mt-3" style={{ color: theme.muted }}>{model.names.groom} &amp; {model.names.bride}</p>
+            <h2 className="text-4xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>{model.names.full}</h2>
+            <p className="mt-3" style={{ color: "var(--t-muted)" }}>{model.names.groom} &amp; {model.names.bride}</p>
           </div>
         </div>
       </section>
@@ -251,13 +251,13 @@ export function Couple({ model, theme, spec }: SectionProps) {
 
   if (variant === "editorial") {
     return (
-      <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
+      <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-background)" }}>
         <div style={narrow} className="mx-auto grid grid-cols-1 items-center gap-8 md:grid-cols-[1fr_auto_1fr]">
           {p1 && <img src={p1} alt={model.names.groom || "Mempelai"} className="aspect-[3/4] w-full rounded-[var(--t-radius)] object-cover" loading="lazy" />}
           <div className="text-center">
-            <h2 className="text-4xl leading-tight" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{model.names.groom}</h2>
-            <span className="my-3 block text-2xl" style={{ color: theme.accent }}>&amp;</span>
-            <h2 className="text-4xl leading-tight" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{model.names.bride}</h2>
+            <h2 className="text-4xl leading-tight" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>{model.names.groom}</h2>
+            <span className="my-3 block text-2xl" style={{ color: "var(--t-accent)" }}>&amp;</span>
+            <h2 className="text-4xl leading-tight" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>{model.names.bride}</h2>
           </div>
           {p2 && <img src={p2} alt={model.names.bride || "Mempelai"} className="aspect-[3/4] w-full rounded-[var(--t-radius)] object-cover" loading="lazy" />}
         </div>
@@ -267,21 +267,21 @@ export function Couple({ model, theme, spec }: SectionProps) {
 
   // portrait (default)
   return (
-    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.background }}>
+    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-background)" }}>
       <div style={narrow} className="mx-auto">
-        <h2 className="mb-8 text-4xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{model.names.full}</h2>
+        <h2 className="mb-8 text-4xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>{model.names.full}</h2>
         <div className="grid grid-cols-2 gap-4">
           {[p1, p2].map((p, i) => (
             <div key={i} className="overflow-hidden rounded-[var(--t-radius)]">
               {p ? (
                 <img src={p} alt={(i === 0 ? model.names.groom : model.names.bride) || "Mempelai"} className="aspect-square w-full object-cover" loading="lazy" />
               ) : (
-                <div className="aspect-square w-full" style={{ background: theme.surface }} />
+                <div className="aspect-square w-full" style={{ background: "var(--t-surface)" }} />
               )}
             </div>
           ))}
         </div>
-        <p className="mt-6" style={{ color: theme.muted }}>{model.names.groom} &amp; {model.names.bride}</p>
+        <p className="mt-6" style={{ color: "var(--t-muted)" }}>{model.names.groom} &amp; {model.names.bride}</p>
       </div>
     </section>
   )
@@ -292,18 +292,18 @@ export function Couple({ model, theme, spec }: SectionProps) {
 export function Parents({ model, theme }: SectionProps) {
   if (!model.parents.groom && !model.parents.bride) return null
   return (
-    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.surface }}>
+    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-surface)" }}>
       <div style={narrow} className="mx-auto grid grid-cols-1 gap-6 sm:grid-cols-2">
         {model.parents.groom && (
           <div>
-            <p className="text-xs uppercase tracking-widest" style={{ color: theme.muted }}>Mempelai Pria</p>
-            <p className="mt-2" style={{ color: theme.text }}>{model.parents.groom}</p>
+            <p className="text-xs uppercase tracking-widest" style={{ color: "var(--t-muted)" }}>Mempelai Pria</p>
+            <p className="mt-2" style={{ color: "var(--t-text)" }}>{model.parents.groom}</p>
           </div>
         )}
         {model.parents.bride && (
           <div>
-            <p className="text-xs uppercase tracking-widest" style={{ color: theme.muted }}>Mempelai Wanita</p>
-            <p className="mt-2" style={{ color: theme.text }}>{model.parents.bride}</p>
+            <p className="text-xs uppercase tracking-widest" style={{ color: "var(--t-muted)" }}>Mempelai Wanita</p>
+            <p className="mt-2" style={{ color: "var(--t-text)" }}>{model.parents.bride}</p>
           </div>
         )}
       </div>
@@ -339,21 +339,21 @@ export function Countdown({ model, theme }: SectionProps) {
     { v: pad(secs), l: "Detik" },
   ]
   return (
-    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.background }}>
+    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-background)" }}>
       <div style={narrow} className="mx-auto">
-        <p className="mb-5 text-sm uppercase tracking-[0.3em]" style={{ color: theme.muted }}>
+        <p className="mb-5 text-sm uppercase tracking-[0.3em]" style={{ color: "var(--t-muted)" }}>
           {done ? "Hari Bahagia Telah Tiba" : "Menuju Hari Bahagia"}
         </p>
         {done ? (
-          <p className="text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>
+          <p className="text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>
             The Day Has Come
           </p>
         ) : (
           <div className="flex justify-center gap-4">
             {items.map((it) => (
-              <div key={it.l} className="min-w-[64px] rounded-[var(--t-radius)] px-3 py-4" style={{ background: theme.surface, border: `1px solid var(--t-border)` }}>
-                <div className="text-3xl font-semibold tabular-nums" style={{ color: theme.primary }}>{it.v}</div>
-                <div className="text-xs" style={{ color: theme.muted }}>{it.l}</div>
+              <div key={it.l} className="min-w-[64px] rounded-[var(--t-radius)] px-3 py-4" style={{ background: "var(--t-surface)", border: `1px solid var(--t-border)` }}>
+                <div className="text-3xl font-semibold tabular-nums" style={{ color: "var(--t-primary)" }}>{it.v}</div>
+                <div className="text-xs" style={{ color: "var(--t-muted)" }}>{it.l}</div>
               </div>
             ))}
           </div>
@@ -493,30 +493,30 @@ export function AddToCalendar({ model, theme }: SectionProps) {
   if (blocks.length === 0) return null
   const couple = model.names.full || "Undangan Pernikahan"
   return (
-    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.background }}>
+    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-background)" }}>
       <div style={narrow} className="mx-auto">
-        <h3 className="text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>
+        <h3 className="text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>
           Simpan Tanggalnya
         </h3>
-        <p className="mt-2 text-sm" style={{ color: theme.muted }}>
+        <p className="mt-2 text-sm" style={{ color: "var(--t-muted)" }}>
           Tambahkan acara ke kalender agar tidak terlewat.
         </p>
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
           {blocks.map((b, i) => {
             const Icon = eventIcon(b)
             return (
-              <div key={i} className="rounded-[var(--t-radius)] border p-6 text-left" style={{ borderColor: "var(--t-border)", background: theme.surface }}>
+              <div key={i} className="rounded-[var(--t-radius)] border p-6 text-left" style={{ borderColor: "var(--t-border)", background: "var(--t-surface)" }}>
                 <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: theme.primary }}>
+                  <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: "var(--t-primary)" }}>
                     <Icon className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="font-semibold" style={{ color: theme.text }}>{b.label}</p>
-                    <p className="mt-1 text-sm" style={{ color: theme.muted }}>
+                    <p className="font-semibold" style={{ color: "var(--t-text)" }}>{b.label}</p>
+                    <p className="mt-1 text-sm" style={{ color: "var(--t-muted)" }}>
                       {b.date ? fmtDate(b.date) : ""} · {fmtTime(b.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}
                     </p>
                     {(b.venue || b.address) && (
-                      <p className="mt-1 text-sm" style={{ color: theme.muted }}>{[b.venue, b.address].filter(Boolean).join(", ")}</p>
+                      <p className="mt-1 text-sm" style={{ color: "var(--t-muted)" }}>{[b.venue, b.address].filter(Boolean).join(", ")}</p>
                     )}
                   </div>
                 </div>
@@ -525,8 +525,8 @@ export function AddToCalendar({ model, theme }: SectionProps) {
                     href={googleCalendarUrl(b, couple)}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--t-radius)] px-3 py-2 text-xs font-semibold text-white"
-                    style={{ background: theme.primary }}
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--t-radius)] px-3 py-2 text-xs font-semibold"
+                    style={{ background: "var(--t-primary)", color: "var(--t-on-primary)" }}
                   >
                     <CalendarHeart className="h-4 w-4" /> Google Calendar
                   </a>
@@ -534,7 +534,7 @@ export function AddToCalendar({ model, theme }: SectionProps) {
                     type="button"
                     onClick={() => downloadIcs(b, couple)}
                     className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--t-radius)] border px-3 py-2 text-xs font-semibold"
-                    style={{ borderColor: "var(--t-border)", color: theme.primary }}
+                    style={{ borderColor: "var(--t-border)", color: "var(--t-primary)" }}
                   >
                     <Download className="h-4 w-4" /> Unduh .ics
                   </button>
@@ -557,23 +557,23 @@ export function Events({ model, theme, spec }: SectionProps) {
 
   if (variant === "timeline") {
     return (
-      <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
+      <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-surface)" }}>
         <div style={narrow} className="mx-auto space-y-6">
-          <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Rangkaian Acara</h3>
+          <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>Rangkaian Acara</h3>
           {blocks.map((b, i) => {
             const Icon = eventIcon(b)
             return (
               <div key={i} className="flex gap-4 border-l-2 pl-4" style={{ borderColor: theme.accent }}>
-                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: theme.primary }}>
+                <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: "var(--t-primary)" }}>
                   <Icon className="h-4 w-4" />
                 </span>
                 <div>
-                  <p className="font-semibold" style={{ color: theme.primary }}>{b.label}</p>
-                  {b.venue && <p style={{ color: theme.text }}>{b.venue}</p>}
-                  {(b.date || b.time) && <p className="text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>}
-                  {b.address && <p className="text-sm" style={{ color: theme.muted }}>{b.address}</p>}
-                  {b.description && <p className="mt-1 text-sm" style={{ color: theme.muted }}>{b.description}</p>}
-                  {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" onClick={() => track("map_click", model.eventId)} className="text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
+                  <p className="font-semibold" style={{ color: "var(--t-primary)" }}>{b.label}</p>
+                  {b.venue && <p style={{ color: "var(--t-text)" }}>{b.venue}</p>}
+                  {(b.date || b.time) && <p className="text-sm" style={{ color: "var(--t-muted)" }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>}
+                  {b.address && <p className="text-sm" style={{ color: "var(--t-muted)" }}>{b.address}</p>}
+                  {b.description && <p className="mt-1 text-sm" style={{ color: "var(--t-muted)" }}>{b.description}</p>}
+                  {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" onClick={() => track("map_click", model.eventId)} className="text-sm underline" style={{ color: "var(--t-primary)" }}>Lihat peta</a>}
                 </div>
               </div>
             )
@@ -585,20 +585,20 @@ export function Events({ model, theme, spec }: SectionProps) {
 
   if (variant === "side") {
     return (
-      <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
+      <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-surface)" }}>
         <div style={narrow} className="mx-auto grid grid-cols-1 gap-6 sm:grid-cols-2">
           {blocks.map((b, i) => {
             const Icon = eventIcon(b)
             return (
-              <div key={i} className="rounded-[var(--t-radius)] p-6 text-center" style={{ background: theme.background, border: `1px solid var(--t-border)` }}>
-                <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: theme.primary }}>
+              <div key={i} className="rounded-[var(--t-radius)] p-6 text-center" style={{ background: "var(--t-background)", border: `1px solid var(--t-border)` }}>
+                <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: "var(--t-primary)" }}>
                   <Icon className="h-5 w-5" />
                 </span>
-                <p className="mt-3 text-lg font-semibold" style={{ color: theme.primary }}>{b.label}</p>
-                {b.venue && <p className="mt-2" style={{ color: theme.text }}>{b.venue}</p>}
-                <p className="text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>
-                {b.address && <p className="text-sm" style={{ color: theme.muted }}>{b.address}</p>}
-                {b.description && <p className="mx-auto mt-2 max-w-xs text-sm" style={{ color: theme.muted }}>{b.description}</p>}
+                <p className="mt-3 text-lg font-semibold" style={{ color: "var(--t-primary)" }}>{b.label}</p>
+                {b.venue && <p className="mt-2" style={{ color: "var(--t-text)" }}>{b.venue}</p>}
+                <p className="text-sm" style={{ color: "var(--t-muted)" }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>
+                {b.address && <p className="text-sm" style={{ color: "var(--t-muted)" }}>{b.address}</p>}
+                {b.description && <p className="mx-auto mt-2 max-w-xs text-sm" style={{ color: "var(--t-muted)" }}>{b.description}</p>}
               </div>
             )
           })}
@@ -609,21 +609,21 @@ export function Events({ model, theme, spec }: SectionProps) {
 
   // cards (default)
   return (
-    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
+    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-surface)" }}>
       <div style={narrow} className="mx-auto grid grid-cols-1 gap-6 sm:grid-cols-2">
         {blocks.map((b, i) => {
           const Icon = eventIcon(b)
           return (
-            <div key={i} className="rounded-[var(--t-radius)] p-6 text-center shadow-sm" style={{ background: theme.background, border: `1px solid var(--t-border)` }}>
-              <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: theme.primary }}>
+            <div key={i} className="rounded-[var(--t-radius)] p-6 text-center shadow-sm" style={{ background: "var(--t-background)", border: `1px solid var(--t-border)` }}>
+              <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full" style={{ background: `${theme.primary}14`, color: "var(--t-primary)" }}>
                 <Icon className="h-5 w-5" />
               </span>
-              <p className="mt-3 text-xs uppercase tracking-widest" style={{ color: theme.muted }}>{b.label}</p>
-              <h4 className="mt-1 text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{b.venue || "—"}</h4>
-              <p className="mt-2 text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>
-              {b.address && <p className="mt-1 text-sm" style={{ color: theme.muted }}>{b.address}</p>}
-              {b.description && <p className="mx-auto mt-3 max-w-xs text-sm" style={{ color: theme.muted }}>{b.description}</p>}
-              {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" onClick={() => track("map_click", model.eventId)} className="mt-2 inline-block text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
+              <p className="mt-3 text-xs uppercase tracking-widest" style={{ color: "var(--t-muted)" }}>{b.label}</p>
+              <h4 className="mt-1 text-2xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>{b.venue || "—"}</h4>
+              <p className="mt-2 text-sm" style={{ color: "var(--t-muted)" }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>
+              {b.address && <p className="mt-1 text-sm" style={{ color: "var(--t-muted)" }}>{b.address}</p>}
+              {b.description && <p className="mx-auto mt-3 max-w-xs text-sm" style={{ color: "var(--t-muted)" }}>{b.description}</p>}
+              {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" onClick={() => track("map_click", model.eventId)} className="mt-2 inline-block text-sm underline" style={{ color: "var(--t-primary)" }}>Lihat peta</a>}
             </div>
           )
         })}
@@ -645,8 +645,8 @@ export function LoveStory({ model, theme, spec }: SectionProps) {
     image: s.image_url,
   }))
   return (
-    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
-      <h3 className="mb-10 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>
+    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-background)" }}>
+      <h3 className="mb-10 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>
         Kisah Kami
       </h3>
       <Timeline variant={variant} items={items} />
@@ -673,8 +673,8 @@ function embedVideoUrl(url: string): string {
 export function Video({ model, theme }: SectionProps) {
   if (!model.video || !model.sections?.video_enabled) return null
   return (
-    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
-      <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Video</h3>
+    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-background)" }}>
+      <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>Video</h3>
       <div className="mx-auto aspect-video w-full max-w-3xl overflow-hidden rounded-[var(--t-radius)]" style={{ border: `1px solid ${theme.border}` }}>
         <iframe
           src={embedVideoUrl(model.video)}
@@ -705,8 +705,8 @@ export function Gallery({ model, theme, spec }: SectionProps) {
 
   if (variant === "columns") {
     return (
-      <section className="px-4 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
-        <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Galeri</h3>
+      <section className="px-4 py-[var(--t-section-spacing)]" style={{ background: "var(--t-background)" }}>
+        <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>Galeri</h3>
         <div className="columns-2 gap-3 sm:columns-3 lg:columns-4" style={{ maxWidth: "var(--t-content-width)", margin: "0 auto" }}>
           {model.gallery.map((g, i) => thumb(g, i, `${imgCls} mb-3 break-inside-avoid`))}
         </div>
@@ -717,12 +717,12 @@ export function Gallery({ model, theme, spec }: SectionProps) {
 
   if (variant === "masonry") {
     return (
-      <section className="px-4 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
+      <section className="px-4 py-[var(--t-section-spacing)]" style={{ background: "var(--t-background)" }}>
         <div className="columns-2 gap-4" style={{ maxWidth: "var(--t-content-width)", margin: "0 auto" }}>
           {model.gallery.map((g, i) => (
             <figure key={g.image_url + i} className="mb-4 break-inside-avoid">
               {thumb(g, i, "w-full rounded-[var(--t-radius)] object-cover")}
-              {g.caption && <figcaption className="mt-1 text-center text-xs" style={{ color: theme.muted }}>{g.caption}</figcaption>}
+              {g.caption && <figcaption className="mt-1 text-center text-xs" style={{ color: "var(--t-muted)" }}>{g.caption}</figcaption>}
             </figure>
           ))}
         </div>
@@ -733,8 +733,8 @@ export function Gallery({ model, theme, spec }: SectionProps) {
 
   if (variant === "horizontal") {
     return (
-      <section className="py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
-        <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Galeri</h3>
+      <section className="py-[var(--t-section-spacing)]" style={{ background: "var(--t-background)" }}>
+        <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>Galeri</h3>
         <div className="flex snap-x gap-4 overflow-x-auto px-6 pb-2">
           {model.gallery.map((g, i) => thumb(g, i, "h-56 w-44 flex-none snap-center rounded-[var(--t-radius)] object-cover"))}
         </div>
@@ -745,8 +745,8 @@ export function Gallery({ model, theme, spec }: SectionProps) {
 
   // grid (default)
   return (
-    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.background }}>
-      <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Galeri</h3>
+    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-background)" }}>
+      <h3 className="mb-6 text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>Galeri</h3>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" style={{ maxWidth: "var(--t-content-width)", margin: "0 auto" }}>
         {model.gallery.map((g, i) => thumb(g, i, `${imgCls} aspect-square`))}
       </div>
@@ -780,9 +780,9 @@ export function Location({ model, theme }: SectionProps) {
   const blocks = eventBlocks(model)
   if (blocks.length === 0) return null
   return (
-    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
+    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-surface)" }}>
       <div style={narrow} className="mx-auto space-y-4">
-        <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Lokasi</h3>
+        <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>Lokasi</h3>
         <div className="overflow-hidden rounded-[var(--t-radius)] border" style={{ borderColor: "var(--t-border)" }}>
           <iframe
             src={embedMapUrl(blocks[0])}
@@ -794,18 +794,18 @@ export function Location({ model, theme }: SectionProps) {
           />
         </div>
         {blocks.map((b, i) => (
-          <div key={i} className="rounded-[var(--t-radius)] p-5 text-center" style={{ background: theme.background, border: `1px solid var(--t-border)` }}>
-            <p className="font-semibold" style={{ color: theme.primary }}>{b.label}</p>
-            {b.venue && <p style={{ color: theme.text }}>{b.venue}</p>}
-            {b.address && <p className="text-sm" style={{ color: theme.muted }}>{b.address}</p>}
+          <div key={i} className="rounded-[var(--t-radius)] p-5 text-center" style={{ background: "var(--t-background)", border: `1px solid var(--t-border)` }}>
+            <p className="font-semibold" style={{ color: "var(--t-primary)" }}>{b.label}</p>
+            {b.venue && <p style={{ color: "var(--t-text)" }}>{b.venue}</p>}
+            {b.address && <p className="text-sm" style={{ color: "var(--t-muted)" }}>{b.address}</p>}
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               <a
                 href={b.map_url || mapsLink(b)}
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => track("map_click", model.eventId)}
-                className="inline-flex items-center gap-1.5 rounded-[var(--t-radius)] px-4 py-2 text-xs font-semibold text-white"
-                style={{ background: theme.primary }}
+                className="inline-flex items-center gap-1.5 rounded-[var(--t-radius)] px-4 py-2 text-xs font-semibold"
+                style={{ background: "var(--t-primary)", color: "var(--t-on-primary)" }}
               >
                 <MapPin className="h-4 w-4" /> Buka Google Maps
               </a>
@@ -815,7 +815,7 @@ export function Location({ model, theme }: SectionProps) {
                 rel="noreferrer"
                 onClick={() => track("map_click", model.eventId)}
                 className="inline-flex items-center gap-1.5 rounded-[var(--t-radius)] border px-4 py-2 text-xs font-semibold"
-                style={{ borderColor: "var(--t-border)", color: theme.primary }}
+                style={{ borderColor: "var(--t-border)", color: "var(--t-primary)" }}
               >
                 <Navigation className="h-4 w-4" /> Petunjuk Arah
               </a>
@@ -845,10 +845,10 @@ export function RSVP({ model, theme }: SectionProps) {
   if (!model.sections.rsvp_enabled) return null
   if (!model.token || !model.eventId) {
     return (
-      <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.surface }}>
+      <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-surface)" }}>
         <div style={narrow} className="mx-auto">
-          <h3 className="text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>RSVP</h3>
-          <p className="mt-3" style={{ color: theme.muted }}>Konfirmasi kehadiran melalui tautan undangan pribadi Anda.</p>
+          <h3 className="text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>RSVP</h3>
+          <p className="mt-3" style={{ color: "var(--t-muted)" }}>Konfirmasi kehadiran melalui tautan undangan pribadi Anda.</p>
         </div>
       </section>
     )
@@ -896,16 +896,16 @@ function RsvpForm({ model, theme }: SectionProps) {
   }
 
   return (
-    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.surface }}>
+    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-surface)" }}>
       <div style={narrow} className="mx-auto">
-        <h3 className="text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>RSVP</h3>
+        <h3 className="text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>RSVP</h3>
         {done ? (
           <div className="mt-6">
-            <p className="text-lg" style={{ color: theme.text }}>
+            <p className="text-lg" style={{ color: "var(--t-text)" }}>
               Terima kasih, konfirmasi Anda telah kami terima.
             </p>
             {model.guestName && (
-              <p className="mt-2 text-sm" style={{ color: theme.muted }}>Sampai jumpa, {model.guestName}!</p>
+              <p className="mt-2 text-sm" style={{ color: "var(--t-muted)" }}>Sampai jumpa, {model.guestName}!</p>
             )}
           </div>
         ) : (
@@ -928,7 +928,7 @@ function RsvpForm({ model, theme }: SectionProps) {
               ))}
             </div>
             <div>
-              <label htmlFor="rsvp-count" className="block text-xs uppercase tracking-wider" style={{ color: theme.muted }}>
+              <label htmlFor="rsvp-count" className="block text-xs uppercase tracking-wider" style={{ color: "var(--t-muted)" }}>
                 Jumlah tamu
               </label>
               <input
@@ -939,11 +939,11 @@ function RsvpForm({ model, theme }: SectionProps) {
                 value={count}
                 onChange={(e) => setCount(Number(e.target.value))}
                 className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm"
-                style={{ borderColor: "var(--t-border)", background: theme.background }}
+                style={{ borderColor: "var(--t-border)", background: "var(--t-background)" }}
               />
             </div>
             <div>
-              <label htmlFor="rsvp-message" className="block text-xs uppercase tracking-wider" style={{ color: theme.muted }}>
+              <label htmlFor="rsvp-message" className="block text-xs uppercase tracking-wider" style={{ color: "var(--t-muted)" }}>
                 Ucapan (opsional)
               </label>
               <textarea
@@ -951,7 +951,7 @@ function RsvpForm({ model, theme }: SectionProps) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm"
-                style={{ borderColor: "var(--t-border)", background: theme.background }}
+                style={{ borderColor: "var(--t-border)", background: "var(--t-background)" }}
                 rows={3}
               />
             </div>
@@ -959,8 +959,7 @@ function RsvpForm({ model, theme }: SectionProps) {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-[var(--t-radius)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              style={{ background: theme.primary }}
+              className="w-full rounded-[var(--t-radius)] px-4 py-2 text-sm font-semibold" style={{ background: "var(--t-primary)", color: "var(--t-on-primary)" }}
             >
               {submitting ? "Mengirim..." : "Kirim"}
             </button>
@@ -1010,16 +1009,16 @@ export function Gift({ model, theme, spec }: SectionProps) {
   if (!model.sections.digital_gifts_enabled || !g) return null
   const title = (spec?.variant as string) === "envelope" ? "Amplop Digital" : "Hadiah"
   return (
-    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
+    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-surface)" }}>
       <div style={narrow} className="mx-auto space-y-4">
-        <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>{title}</h3>
-        {g.gift_message && <p className="text-center" style={{ color: theme.muted }}>{g.gift_message}</p>}
+        <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>{title}</h3>
+        {g.gift_message && <p className="text-center" style={{ color: "var(--t-muted)" }}>{g.gift_message}</p>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(g.bank_accounts || []).map((acc, i) => (
-            <div key={i} className="rounded-[var(--t-radius)] border p-4 text-sm" style={{ borderColor: "var(--t-border)", background: theme.background }}>
-              <p className="font-semibold" style={{ color: theme.primary }}>{(acc.bank as string) || (acc.bank_name as string) || "Bank"} - {(acc.name as string) || (acc.account_holder as string)}</p>
+            <div key={i} className="rounded-[var(--t-radius)] border p-4 text-sm" style={{ borderColor: "var(--t-border)", background: "var(--t-background)" }}>
+              <p className="font-semibold" style={{ color: "var(--t-primary)" }}>{(acc.bank as string) || (acc.bank_name as string) || "Bank"} - {(acc.name as string) || (acc.account_holder as string)}</p>
               <div className="mt-1 flex items-center justify-between gap-3">
-                <p className="font-mono tracking-wide" style={{ color: theme.muted }}>{acc.account as string || acc.account_number as string}</p>
+                <p className="font-mono tracking-wide" style={{ color: "var(--t-muted)" }}>{acc.account as string || acc.account_number as string}</p>
                 <CopyAccount value={(acc.account as string) || (acc.account_number as string) || ""} />
               </div>
             </div>
@@ -1076,27 +1075,27 @@ function GuestbookInner({ model, theme }: SectionProps) {
     }
   }
   return (
-    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: theme.surface }}>
+    <section className="px-6 py-[var(--t-section-spacing)]" style={{ background: "var(--t-surface)" }}>
       <div style={narrow} className="mx-auto space-y-4">
-        <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: theme.primary }}>Buku Tamu</h3>
+        <h3 className="text-center text-3xl" style={{ fontFamily: "var(--t-font-heading)", color: "var(--t-primary)" }}>Buku Tamu</h3>
         <ul className="space-y-3">
           {items.map((m, i) => (
-            <li key={i} className="rounded-[var(--t-radius)] border p-4" style={{ borderColor: "var(--t-border)", background: theme.background }}>
-              <p className="font-medium" style={{ color: theme.text }}>{m.name}</p>
-              <p className="text-sm" style={{ color: theme.muted }}>{m.message}</p>
+            <li key={i} className="rounded-[var(--t-radius)] border p-4" style={{ borderColor: "var(--t-border)", background: "var(--t-background)" }}>
+              <p className="font-medium" style={{ color: "var(--t-text)" }}>{m.name}</p>
+              <p className="text-sm" style={{ color: "var(--t-muted)" }}>{m.message}</p>
             </li>
           ))}
         </ul>
         <form onSubmit={submit} className="space-y-3">
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm" style={{ borderColor: "var(--t-border)", background: theme.background }} placeholder="Nama" />
-          <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm" style={{ borderColor: "var(--t-border)", background: theme.background }} placeholder="Ucapan" rows={3} />
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm" style={{ borderColor: "var(--t-border)", background: "var(--t-background)" }} placeholder="Nama" />
+          <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="w-full rounded-[var(--t-radius)] border px-3 py-2 text-sm" style={{ borderColor: "var(--t-border)", background: "var(--t-background)" }} placeholder="Ucapan" rows={3} />
         {err && <p role="alert" className="text-sm text-red-500">{err}</p>}
         {canSubmit ? (
-          <button type="submit" disabled={submitting} className="w-full rounded-[var(--t-radius)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" style={{ background: theme.primary }}>
+          <button type="submit" disabled={submitting} className="w-full rounded-[var(--t-radius)] px-4 py-2 text-sm font-semibold" style={{ background: "var(--t-primary)", color: "var(--t-on-primary)" }}>
             {submitting ? "Mengirim..." : "Kirim"}
           </button>
         ) : (
-          <p className="text-center text-sm" style={{ color: theme.muted }}>Ucapan dapat dikirim melalui tautan undangan.</p>
+          <p className="text-center text-sm" style={{ color: "var(--t-muted)" }}>Ucapan dapat dikirim melalui tautan undangan.</p>
         )}
         </form>
       </div>
@@ -1109,9 +1108,9 @@ function GuestbookInner({ model, theme }: SectionProps) {
 export function Closing({ model, theme }: SectionProps) {
   if (!model.closing) return null
   return (
-    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: theme.background }}>
+    <section className="px-6 py-[var(--t-section-spacing)] text-center" style={{ background: "var(--t-background)" }}>
       <div style={narrow} className="mx-auto">
-        <p className="text-lg leading-relaxed" style={{ color: theme.text }}>{model.closing}</p>
+        <p className="text-lg leading-relaxed" style={{ color: "var(--t-text)" }}>{model.closing}</p>
       </div>
     </section>
   )

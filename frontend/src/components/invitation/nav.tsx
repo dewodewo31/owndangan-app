@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Menu, X } from "lucide-react"
 import type { NavStyle, SectionSpec } from "@/templates/types"
 import { cn } from "@/lib/cn"
 
@@ -48,7 +49,7 @@ export function Nav({
     return (
       <>
         <button onClick={() => setOpen((v) => !v)} className="fixed right-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-black text-white shadow-lg" aria-label="Buka menu">
-          <span className="text-xl">{open ? "✕" : "☰"}</span>
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
         {open && (
           <div className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-5 bg-white/95">

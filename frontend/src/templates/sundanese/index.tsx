@@ -16,7 +16,7 @@ export const definition: TemplateDefinition = {
     background: "#f4f1e8",
     surface: "#ece7d8",
     text: "#2b3a2e",
-    muted: "#7a857a",
+    muted: "#5f695f",
     accent: "#c9a14a",
     border: "#dcd6c4",
     radius: "1.25rem",
