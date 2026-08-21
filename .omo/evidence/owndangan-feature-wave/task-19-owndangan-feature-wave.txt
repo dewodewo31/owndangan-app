@@ -1,0 +1,12 @@
+task: owndangan-feature-wave todo 19 — auto night-mode hook + mount in public renderer
+build_command: npm run build
+build_exit_code: 0
+files:
+  frontend/src/hooks/use-night-mode.ts (new) — useNightMode({start,end,timezone}); default 18:00–06:00 wraps midnight; hydration-safe (initial false, set in effect); recomputes every 60s
+  frontend/src/components/invitation/shell.tsx — call useNightMode(), themeVars(theme, night ? definition.night : undefined)
+  frontend/src/components/dashboard/live-preview.tsx — call useNightMode() before early return, themeVars(definition.theme, night ? definition.night : undefined)
+assertions:
+  useNightMode mount: grep -n "useNightMode()" frontend/src/components/invitation/shell.tsx frontend/src/components/dashboard/live-preview.tsx
+  night palette applied: grep -n "themeVars(theme, night ? definition.night : undefined)" frontend/src/components/invitation/shell.tsx
+  hydration-safe: hook uses useState(false) then useEffect (no window/Date in initial render)
+note: night palette object lives on TemplateDefinition.night (not ThemeTokens), so the boolean toggles passing definition.night to themeVars(theme, night?).

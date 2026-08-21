@@ -1,6 +1,7 @@
 "use client"
 
 import { themeVars, themeFontsHref } from "@/templates/theme"
+import { useNightMode } from "@/hooks/use-night-mode"
 import { Reveal } from "@/templates/anim"
 import { Nav } from "./nav"
 import { Divider } from "./decorations"
@@ -35,10 +36,11 @@ export function TemplateShell({
   model: InvitationModel
 }) {
   const { theme, nav, animation, sections, decoration } = definition
+  const { night } = useNightMode()
 
   return (
     <div
-      style={themeVars(theme)}
+      style={themeVars(theme, night ? definition.night : undefined)}
       className="invitation-root relative min-h-screen"
     >
       <link rel="stylesheet" href={themeFontsHref(theme)} />

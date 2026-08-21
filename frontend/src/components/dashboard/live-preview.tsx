@@ -5,6 +5,7 @@ import { TemplateShell } from "@/components/invitation/shell"
 import { CoverGate } from "@/components/invitation/cover-gate"
 import { selectTemplate } from "@/templates"
 import { themeVars } from "@/templates/theme"
+import { useNightMode } from "@/hooks/use-night-mode"
 import { buildPreviewModel } from "@/lib/editor-preview"
 import type {
   DigitalGift,
@@ -52,6 +53,7 @@ export function LivePreview({
     loveStories,
     template
   )
+  const { night } = useNightMode()
 
   if (!event || !template || !model) {
     return (
@@ -73,7 +75,7 @@ export function LivePreview({
   const primaryColor = (css.primary_color as string) || "#b22234"
   const heroImage =
     (css.hero_image as string) || model.gallery[0]?.image_url || FALLBACK_HERO_IMAGE
-  const vars = themeVars(definition.theme) as CSSProperties
+  const vars = themeVars(definition.theme, night ? definition.night : undefined) as CSSProperties
 
   return (
     <div className="flex w-full justify-center">
