@@ -1,0 +1,9 @@
+task: owndangan-feature-wave todo 31 — lock pricing display and onboarding flow
+test_command: npx jest src/data/__tests__/pricing.test.ts src/app/__tests__/register.test.tsx
+test_exit_code: 0 (4 passed)
+files:
+  frontend/src/data/__tests__/pricing.test.ts (new) — real marketing.ts export vs hardcoded canonical seed constants (starter 99000 / premium 299000 / all-access 999000); fails on drift without updating both sides
+  frontend/src/app/__tests__/register.test.tsx (new) — mocks next/navigation useRouter + fetch; success -> tokens in localStorage + router.push("/dashboard"); token-less response -> push("/login?notice=sesi") and no session stored
+notes:
+  - pricing data NOT mocked (real export asserted per plan).
+  - Plan path src/app/(auth)/__tests__/register.test.tsx adapted to actual layout src/app/__tests__/register.test.tsx (no route group).
