@@ -38,3 +38,7 @@ coverage/
 *.key
 *.cert
 secrets/
+
+# Stray artifacts
+-l
+*.tsbuildinfo
