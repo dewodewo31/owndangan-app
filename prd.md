@@ -50,10 +50,10 @@ frontend/
 
 Berdasarkan analisis pasar kompetitor undangan pernikahan digital di Indonesia (seperti AkanNikah, Satumomen, SebarIn, dll.), platform ini membagi paket ke dalam 3 tingkatan (*tier*):
 
-| Fitur / Komponen | Paket Basic | Paket Premium | Paket Pro |
+| Fitur / Komponen | Paket Starter | Paket Premium | Paket All Access |
 | :--- | :--- | :--- | :--- |
-| **Harga Acuan** | Rp 49.000 - Rp 99.000 | Rp 149.000 - Rp 199.000 | Rp 299.000 - Rp 499.000 |
-| **Masa Aktif** | 3 Bulan | 1 Tahun | Selamanya / Custom |
+| **Harga Acuan** | Rp 99.000 | Rp 299.000 | Rp 999.000 |
+| **Masa Aktif** | 30 Hari | 60 Hari | Selamanya / Custom |
 | **Pilihan Tema** | Standard (5 Theme) | Premium (20+ Theme) | All Themes + Request Custom |
 | **Batas Tamu Undangan** | Max 100 Tamu | Max 500 Tamu | Unlimited Tamu |
 | **Subdomain / Slug** | Custom Slug (`/mempelai`) | Custom Slug (`/mempelai`) | Custom Domain (`pasangan.com`) / Custom Slug |

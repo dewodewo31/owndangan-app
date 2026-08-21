@@ -90,6 +90,6 @@
 | Term | Definition |
 |------|------------|
 | Free | Default tier with limited features (7 days, 100 guests) |
-| Basic | Entry paid tier (3 months, 100 guests, Rp 49K-99K) |
-| Premium | Mid-tier (1 year, 500 guests, Rp 149K-199K) |
-| Pro | Top tier (lifetime, unlimited, Rp 299K-499K) |
+| Starter | Entry paid tier (30 days, Rp 99K) |
+| Premium | Mid-tier (60 days, Rp 299K) |
+| All Access | Top tier (lifetime, unlimited, Rp 999K) |

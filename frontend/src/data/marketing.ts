@@ -105,12 +105,13 @@ export const templates = [
 
 export const templateCategories = ["All", "Elegant", "Minimal", "Modern", "Floral", "Classic"]
 
+// Source of truth: backend/internal/database/seed.go
 export const pricingPlans = [
   {
-    id: "basic",
-    name: "Basic",
+    id: "starter",
+    name: "Starter",
     price: 99000,
-    duration: "3 bulan",
+    duration: "30 hari",
     description: "Untuk pasangan yang baru memulai",
     features: [
       "1 Undangan",
@@ -126,7 +127,7 @@ export const pricingPlans = [
     id: "premium",
     name: "Premium",
     price: 299000,
-    duration: "6 bulan",
+    duration: "60 hari",
     description: "Pilihan terbaik untuk pernikahan impian",
     features: [
       "3 Undangan",
@@ -140,9 +141,9 @@ export const pricingPlans = [
     popular: true,
   },
   {
-    id: "pro",
-    name: "Pro",
-    price: 350000,
+    id: "all-access",
+    name: "All Access",
+    price: 999000,
     duration: "Lifetime",
     description: "Untuk unlimited kemungkinan",
     features: [

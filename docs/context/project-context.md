@@ -26,9 +26,9 @@ Traditional wedding invitations are costly, environmentally wasteful, and diffic
 ## Business Model
 
 Freemium SaaS with 3 paid tiers:
-- **Basic** (Rp 49K–99K, 3 months, 100 guests)
-- **Premium** (Rp 149K–199K, 1 year, 500 guests)
-- **Pro** (Rp 299K–499K, lifetime, unlimited guests)
+- **Starter** (Rp 99K, 30 days)
+- **Premium** (Rp 299K, 60 days)
+- **All Access** (Rp 999K, lifetime, unlimited guests)
 
 ## Platform Flow
 
