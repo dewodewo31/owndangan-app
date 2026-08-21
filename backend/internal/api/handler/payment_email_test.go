@@ -25,6 +25,11 @@ func (r *recEmailSender) SendAsync(to, subject, htmlBody string) {
 	r.emails = append(r.emails, recEmail{To: to, Subject: subject, HTML: htmlBody})
 }
 
+func (r *recEmailSender) SendWithRetry(to, subject, htmlBody string) error {
+	r.SendAsync(to, subject, htmlBody)
+	return nil
+}
+
 func (r *recEmailSender) count() int {
 	r.mu.Lock()
 	defer r.mu.Unlock()

@@ -15,6 +15,9 @@ import (
 	"github.com/owndangan/backend/internal/pkg/logger"
 	"github.com/owndangan/backend/internal/pkg/storage"
 	"github.com/owndangan/backend/internal/repository"
+	"github.com/owndangan/backend/internal/service/email"
+	"github.com/rs/zerolog"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -55,6 +58,7 @@ func main() {
 		GuestRepo:              repository.NewGuestRepository(db.DB),
 		RSVPRepo:               repository.NewRSVPRepository(db.DB),
 		GuestbookRepo:          repository.NewGuestbookRepository(db.DB),
+		LoveStoryRepo:          repository.NewLoveStoryRepository(db.DB),
 		DigitalGiftRepo:        repository.NewDigitalGiftRepository(db.DB),
 		GalleryPhotoRepo:       repository.NewGalleryPhotoRepository(db.DB),
 		AnalyticsRepo:          repository.NewAnalyticsEventRepository(db.DB),
@@ -83,7 +87,12 @@ func main() {
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	workerCtx, stopWorker := context.WithCancel(context.Background())
+	go runExpiryReminderWorker(workerCtx, cfg, db.DB, log)
+
 	<-quit
+	stopWorker()
 
 	log.Info().Msg("shutting down server...")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -103,5 +112,38 @@ func newStorage(cfg *config.Config) storage.Storage {
 			cfg.Storage.SecretKey, cfg.Storage.Endpoint, cfg.Storage.PublicURL)
 	default:
 		return storage.NewLocalStorage(cfg.Storage.LocalPath, "/uploads")
+	}
+}
+
+func runExpiryReminderWorker(ctx context.Context, cfg *config.Config, db *gorm.DB, log zerolog.Logger) {
+	mailer := email.NewService(cfg.SMTP, log)
+	base := os.Getenv("APP_PUBLIC_URL")
+	if base == "" {
+		base = "http://localhost:3000"
+	}
+	worker := email.NewExpiryWorker(
+		repository.NewSubscriptionRepository(db),
+		repository.NewUserRepository(db),
+		repository.NewPackageRepository(db),
+		repository.NewAuditLogRepository(db),
+		mailer,
+		base+"/dashboard/billing",
+		log,
+	)
+	run := func() {
+		if err := worker.RunOnce(ctx); err != nil {
+			log.Error().Err(err).Msg("expiry reminder scan failed")
+		}
+	}
+	run()
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			run()
+		}
 	}
 }

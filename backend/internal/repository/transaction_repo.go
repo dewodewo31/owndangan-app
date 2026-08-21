@@ -91,6 +91,8 @@ type SubscriptionRepository interface {
 	Update(ctx context.Context, sub *model.Subscription) error
 	CountExpired(ctx context.Context) (int64, error)
 	DeactivateActive(ctx context.Context, userID uuid.UUID) error
+	ListExpiringBetween(ctx context.Context, from, to time.Time) ([]model.Subscription, error)
+	ListExpiredActive(ctx context.Context, now time.Time) ([]model.Subscription, error)
 }
 
 type subscriptionRepo struct {
@@ -162,8 +164,25 @@ func (r *subscriptionRepo) DeactivateActive(ctx context.Context, userID uuid.UUI
 		Update("status", "cancelled").Error
 }
 
+func (r *subscriptionRepo) ListExpiringBetween(ctx context.Context, from, to time.Time) ([]model.Subscription, error) {
+	var subs []model.Subscription
+	err := r.db.WithContext(ctx).
+		Where("status = ? AND expires_at >= ? AND expires_at <= ?", "active", from, to).
+		Find(&subs).Error
+	return subs, err
+}
+
+func (r *subscriptionRepo) ListExpiredActive(ctx context.Context, now time.Time) ([]model.Subscription, error) {
+	var subs []model.Subscription
+	err := r.db.WithContext(ctx).
+		Where("status = ? AND expires_at < ?", "active", now).
+		Find(&subs).Error
+	return subs, err
+}
+
 type AuditLogRepository interface {
 	Create(ctx context.Context, log *model.AuditLog) error
+	ExistsSince(ctx context.Context, action, entityType string, entityID uuid.UUID, since time.Time) (bool, error)
 }
 
 type auditLogRepo struct {
@@ -176,6 +195,14 @@ func NewAuditLogRepository(db *gorm.DB) AuditLogRepository {
 
 func (r *auditLogRepo) Create(ctx context.Context, log *model.AuditLog) error {
 	return r.db.WithContext(ctx).Create(log).Error
+}
+
+func (r *auditLogRepo) ExistsSince(ctx context.Context, action, entityType string, entityID uuid.UUID, since time.Time) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.AuditLog{}).
+		Where("action = ? AND entity_type = ? AND entity_id = ? AND created_at >= ?", action, entityType, entityID, since).
+		Count(&count).Error
+	return count > 0, err
 }
 
 type WebhookIdempotencyRepository interface {

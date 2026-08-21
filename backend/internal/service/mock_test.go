@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/owndangan/backend/internal/model"
@@ -211,10 +212,22 @@ func (m *mockSubscriptionRepo) DeactivateActive(ctx context.Context, userID uuid
 	return nil
 }
 
+func (m *mockSubscriptionRepo) ListExpiringBetween(ctx context.Context, from, to time.Time) ([]model.Subscription, error) {
+	return nil, nil
+}
+
+func (m *mockSubscriptionRepo) ListExpiredActive(ctx context.Context, now time.Time) ([]model.Subscription, error) {
+	return nil, nil
+}
+
 type mockAuditLogRepo struct{}
 
 func (m *mockAuditLogRepo) Create(ctx context.Context, log *model.AuditLog) error {
 	return nil
+}
+
+func (m *mockAuditLogRepo) ExistsSince(ctx context.Context, action, entityType string, entityID uuid.UUID, since time.Time) (bool, error) {
+	return false, nil
 }
 
 type mockTransactionRepo struct {
