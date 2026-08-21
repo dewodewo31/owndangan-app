@@ -1,49 +1,64 @@
-export const features = [
+import {
+  Camera,
+  Calendar,
+  ClipboardList,
+  Gift,
+  Link,
+  MessageCircle,
+  Palette,
+  PenLine,
+  Phone,
+  Smartphone,
+  Users,
+  type LucideIcon,
+} from "lucide-react"
+
+export const features: { id: string; icon: LucideIcon; title: string; description: string }[] = [
   {
     id: "templates",
-    icon: "🎨",
+    icon: Palette,
     title: "Beautiful Templates",
     description: "Pilih dari berbagai template undangan yang elegan dan modern.",
   },
   {
     id: "editor",
-    icon: "✏️",
+    icon: PenLine,
     title: "Invitation Editor",
     description: "Sesuaikan setiap bagian undangan dengan editor yang mudah digunakan.",
   },
   {
     id: "guests",
-    icon: "👥",
+    icon: Users,
     title: "Guest Management",
     description: "Kelola seluruh tamu dalam satu tempat dengan mudah.",
   },
   {
     id: "rsvp",
-    icon: "📝",
+    icon: ClipboardList,
     title: "RSVP",
     description: "Terima konfirmasi kehadiran secara real-time.",
   },
   {
     id: "gallery",
-    icon: "📷",
+    icon: Camera,
     title: "Gallery",
     description: "Bagikan foto dan momen spesial kalian.",
   },
   {
     id: "digital-gift",
-    icon: "🎁",
+    icon: Gift,
     title: "Digital Gift",
     description: "Terima hadiah digital dengan mudah dan aman.",
   },
   {
     id: "whatsapp",
-    icon: "📱",
+    icon: Smartphone,
     title: "WhatsApp Sharing",
     description: "Bagikan undangan melalui WhatsApp dengan satu klik.",
   },
   {
     id: "guestbook",
-    icon: "💬",
+    icon: MessageCircle,
     title: "Guestbook",
     description: "Kumpulkan pesan dan doa dari tamu undangan.",
   },
@@ -173,24 +188,24 @@ export const faqItems = [
   },
 ]
 
-export const problems = [
+export const problems: { icon: LucideIcon; title: string; description: string }[] = [
   {
-    icon: "📋",
+    icon: ClipboardList,
     title: "Daftar tamu berantakan",
     description: "Kesulitan mengelola daftar tamu secara manual",
   },
   {
-    icon: "📞",
+    icon: Phone,
     title: "Konfirmasi RSVP manual",
     description: "Menghubungi satu per satu tamu memakan waktu",
   },
   {
-    icon: "🔗",
+    icon: Link,
     title: "Sulit membagikan undangan",
     description: "Berbagi undangan fisik memakan biaya dan waktu",
   },
   {
-    icon: "📅",
+    icon: Calendar,
     title: "Informasi acara tersebar",
     description: "Detail acara sulit diakses oleh tamu",
   },
@@ -221,3 +236,6 @@ export const trustIndicators = [
   "Digital Gift",
   "Custom Invitation",
 ]
+
+// Placeholder business number — replace with the real Owndangan WA number.
+export const contactWhatsApp = "https://wa.me/6281234567890"
