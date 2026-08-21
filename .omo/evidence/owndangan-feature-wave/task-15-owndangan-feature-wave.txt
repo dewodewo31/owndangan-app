@@ -1,0 +1,12 @@
+task: owndangan-feature-wave todo 15 — client-side click tracking for WhatsApp/map/phone interactions on public invitations
+test_command: npx jest src/components/invitation/__tests__/track.test.ts
+test_exit_code: 0
+build_command: npm run build
+build_exit_code: 1
+build_failure: pre-existing type errors in src/templates/theme.ts:7 (Property 'night' does not exist on type 'ThemeTokens') and src/templates/__tests__/night-tokens.test.ts (4 errors) from concurrent night-palette work (todo 17); zero type errors in changed files (verified via tsc --noEmit grep)
+assertion_whatsapp: grep -n 'track("whatsapp_click"' src/components/invitation/share.tsx -> line 72 onClick={() => track("whatsapp_click", eventId)} on WhatsApp share anchor
+assertion_map: grep -n 'track("map_click"' src/components/invitation/sections.tsx -> lines 576, 626 (Events "Lihat peta"), 806, 816 (Location "Buka Google Maps" + "Petunjuk Arah")
+assertion_phone: grep -n 'track("phone_click"\|tel:' src/components/invitation/sections.tsx -> no tel: links; comment at lines 760-761 notes phone links don't exist today
+assertion_guard: track() returns early when eventId is falsy (sections.tsx track helper); no tracking on editor/dashboard/guestbook/RSVP
+files_changed: frontend/src/components/invitation/sections.tsx, frontend/src/components/invitation/share.tsx, frontend/src/components/invitation/shell.tsx (one-line eventId prop pass), frontend/src/components/invitation/__tests__/track.test.ts (new)
+deviation: shell.tsx touched (one line, eventId={model.eventId}) — required because ShareButton does not receive the model; without it WhatsApp tracking would no-op in production

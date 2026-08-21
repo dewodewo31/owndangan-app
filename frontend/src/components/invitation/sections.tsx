@@ -30,6 +30,31 @@ function apiBase() {
   return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
 }
 
+export type TrackType = "whatsapp_click" | "map_click" | "phone_click"
+
+/**
+ * Fire-and-forget client-side analytics. Never blocks navigation, never throws,
+ * silently ignores failures. No-op when eventId is missing (e.g. preview/editor).
+ */
+export function track(type: TrackType, eventId?: string) {
+  if (!eventId) return
+  const url = `${apiBase()}/analytics/events`
+  const body = JSON.stringify({ event_id: eventId, type })
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+      navigator.sendBeacon(url, new Blob([body], { type: "application/json" }))
+      return
+    }
+  } catch {
+    // sendBeacon threw — fall through to fetch
+  }
+  try {
+    fetch(url, { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body }).catch(() => {})
+  } catch {
+    // fire-and-forget: silently ignore failures
+  }
+}
+
 function fmtDate(d?: string) {
   if (!d) return ""
   const dt = new Date(d)
@@ -548,7 +573,7 @@ export function Events({ model, theme, spec }: SectionProps) {
                   {(b.date || b.time) && <p className="text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>}
                   {b.address && <p className="text-sm" style={{ color: theme.muted }}>{b.address}</p>}
                   {b.description && <p className="mt-1 text-sm" style={{ color: theme.muted }}>{b.description}</p>}
-                  {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" className="text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
+                  {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" onClick={() => track("map_click", model.eventId)} className="text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
                 </div>
               </div>
             )
@@ -598,7 +623,7 @@ export function Events({ model, theme, spec }: SectionProps) {
               <p className="mt-2 text-sm" style={{ color: theme.muted }}>{b.date || fmtDate(model.date)} · {fmtTime(b.time || model.time)}{b.end_time ? ` – ${fmtTime(b.end_time)}` : ""}</p>
               {b.address && <p className="mt-1 text-sm" style={{ color: theme.muted }}>{b.address}</p>}
               {b.description && <p className="mx-auto mt-3 max-w-xs text-sm" style={{ color: theme.muted }}>{b.description}</p>}
-              {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
+              {b.map_url && <a href={b.map_url} target="_blank" rel="noreferrer" onClick={() => track("map_click", model.eventId)} className="mt-2 inline-block text-sm underline" style={{ color: theme.primary }}>Lihat peta</a>}
             </div>
           )
         })}
@@ -732,6 +757,9 @@ export function Gallery({ model, theme, spec }: SectionProps) {
 
 /* ---------------------------------------------------------------- LOCATION */
 
+// Note: no phone (`tel:`) links exist in the invitation sections today, so
+// track("phone_click") is not wired anywhere yet.
+
 function mapQuery(b: EventBlock): string {
   return encodeURIComponent([b.address, b.venue].filter(Boolean).join(", ") || "Indonesia")
 }
@@ -775,6 +803,7 @@ export function Location({ model, theme }: SectionProps) {
                 href={b.map_url || mapsLink(b)}
                 target="_blank"
                 rel="noreferrer"
+                onClick={() => track("map_click", model.eventId)}
                 className="inline-flex items-center gap-1.5 rounded-[var(--t-radius)] px-4 py-2 text-xs font-semibold text-white"
                 style={{ background: theme.primary }}
               >
@@ -784,6 +813,7 @@ export function Location({ model, theme }: SectionProps) {
                 href={directionsLink(b)}
                 target="_blank"
                 rel="noreferrer"
+                onClick={() => track("map_click", model.eventId)}
                 className="inline-flex items-center gap-1.5 rounded-[var(--t-radius)] border px-4 py-2 text-xs font-semibold"
                 style={{ borderColor: "var(--t-border)", color: theme.primary }}
               >
