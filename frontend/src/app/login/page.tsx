@@ -66,7 +66,7 @@ export default function LoginPage() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Kata Sandi</Label>
               <Link href="#" className="text-xs text-primary hover:underline">
                 Lupa password?
               </Link>
@@ -88,7 +88,7 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0"
+            className="w-full h-11 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 border-0"
             loading={loading}
           >
             Masuk
