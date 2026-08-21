@@ -126,7 +126,7 @@ export default function BillingPage() {
                     {subscription ? (
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          <span className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/20">
+                          <span className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-gradient-to-br from-plum to-rosegold text-white shadow-elevation-1">
                             <Crown className="h-6 w-6" />
                           </span>
                           <div>
@@ -149,17 +149,17 @@ export default function BillingPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-indigo-600 to-violet-700 text-white border-0">
+                <Card className="bg-gradient-to-br from-plum to-rosegold text-white border-0">
                   <CardContent className="p-6 flex flex-col justify-between h-full">
                     <div>
                       <h3 className="font-semibold text-lg">Upgrade Paket</h3>
-                      <p className="text-sm text-indigo-100 mt-1.5 leading-relaxed">
+                      <p className="text-sm text-primary-foreground/80 mt-1.5 leading-relaxed">
                         Buka lebih banyak fitur: lebih banyak tamu, custom domain,
                         dan template eksklusif.
                       </p>
                     </div>
-                    <Link href="/packages" className="mt-6">
-                      <Button className="w-full bg-white text-primary hover:bg-indigo-50 border-0">
+                    <Link href="/#pricing" className="mt-6">
+                      <Button className="w-full bg-white text-primary hover:bg-primary-container border-0">
                         Lihat Paket
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
