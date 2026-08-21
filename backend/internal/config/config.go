@@ -18,6 +18,7 @@ type Config struct {
 	Midtrans MidtransConfig
 	Storage  StorageConfig
 	CORS     CORSConfig
+	SMTP     SMTPConfig
 }
 
 type DatabaseConfig struct {
@@ -58,6 +59,15 @@ type StorageConfig struct {
 
 type CORSConfig struct {
 	AllowedOrigins []string
+}
+
+type SMTPConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+	From     string
+	FromName string
 }
 
 func Load() (*Config, error) {
@@ -102,6 +112,14 @@ func Load() (*Config, error) {
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: getEnvSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+		},
+		SMTP: SMTPConfig{
+			Host:     getEnv("SMTP_HOST", ""),
+			Port:     getEnvInt("SMTP_PORT", 587),
+			Username: getEnv("SMTP_USERNAME", ""),
+			Password: getEnv("SMTP_PASSWORD", ""),
+			From:     getEnv("SMTP_FROM", ""),
+			FromName: getEnv("SMTP_FROM_NAME", "Owndangan"),
 		},
 	}
 

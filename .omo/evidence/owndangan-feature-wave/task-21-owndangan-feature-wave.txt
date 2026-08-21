@@ -1,0 +1,21 @@
+task: owndangan-feature-wave todo 21 — SMTP email service with retry and templates
+build_command: go build ./...
+build_exit_code: 0
+test_command: go test ./internal/service/email/ -count=1 -v
+test_exit_code: 0 (5 passed)
+tests:
+  TestSendWithRetry_GivesUpAfterThreeAttempts — fails 3x -> error after exactly 3 attempts, backoff [1m 5m] via injectable sleep
+  TestSendWithRetry_SucceedsOnSecondAttempt — transient failure then success -> nil, 2 attempts
+  TestSend_TimesOutWhenSenderBlocks — blocked sender + 50ms timeout -> timeout error
+  TestTemplates_EscapeUserContent — <script> in Name renders as &lt;script&gt; (html/template auto-escape)
+  TestRenderAll_NoError — welcome/expiry-reminder/expired templates render
+files:
+  backend/go.mod + go.sum — gopkg.in/gomail.v2 added (per docs/integrations/email.md)
+  backend/internal/config/config.go — SMTPConfig{Host,Port,Username,Password,From,FromName} loaded from SMTP_* env (no required-check: email optional in dev)
+  backend/.env.example — SMTP_HOST/PORT/USERNAME/PASSWORD/FROM/FROM_NAME
+  backend/internal/service/email/service.go (new) — Send (10s timeout), SendWithRetry (3 attempts), SendAsync (never blocks/fails caller, logs final failures via zerolog), 4 html/template renderers
+  backend/internal/service/email/service_test.go (new)
+notes:
+  - Plan says "3 attempts"; docs' 30m third-retry delay would imply a 4th attempt, so backoff between the 3 attempts is [1m, 5m] per the plan's acceptance test.
+  - No queue dependency; no credentials in code; async wrapper never returns errors to callers.
+pre_existing_failures: make test-unit shows ONLY the 4 documented failures (TestAuth_Register_ValidationError, TestE2E_ValidationError, TestEditor_Template_AssignAndList, TestAPI_PackagesList). Not fixed.
