@@ -16,6 +16,9 @@ type GuestRepository interface {
 	ListByEvent(ctx context.Context, eventID uuid.UUID, page, perPage int) ([]model.Guest, int64, error)
 	Update(ctx context.Context, guest *model.Guest) error
 	SoftDelete(ctx context.Context, id uuid.UUID) error
+	GetByIdUnscoped(ctx context.Context, id uuid.UUID) (*model.Guest, error)
+	Restore(ctx context.Context, id, eventID uuid.UUID) error
+	ListDeleted(ctx context.Context, eventID uuid.UUID) ([]model.Guest, error)
 	CountByEvent(ctx context.Context, eventID uuid.UUID) (int64, error)
 	BulkCreate(ctx context.Context, guests []model.Guest) error
 	IsTokenTaken(ctx context.Context, token string) (bool, error)
@@ -87,6 +90,34 @@ func (r *guestRepo) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&model.Guest{}, id).Error
 }
 
+// GetByIdUnscoped includes soft-deleted rows, needed by Restore (GetByID filters deleted_at IS NULL).
+func (r *guestRepo) GetByIdUnscoped(ctx context.Context, id uuid.UUID) (*model.Guest, error) {
+	var guest model.Guest
+	err := r.db.WithContext(ctx).Unscoped().
+		Preload("RSVP").
+		Where("id = ?", id).
+		First(&guest).Error
+	if err != nil {
+		return nil, err
+	}
+	return &guest, nil
+}
+
+func (r *guestRepo) Restore(ctx context.Context, id, eventID uuid.UUID) error {
+	return r.db.WithContext(ctx).Unscoped().Model(&model.Guest{}).
+		Where("id = ? AND event_id = ?", id, eventID).
+		Update("deleted_at", nil).Error
+}
+
+func (r *guestRepo) ListDeleted(ctx context.Context, eventID uuid.UUID) ([]model.Guest, error) {
+	var guests []model.Guest
+	err := r.db.WithContext(ctx).Unscoped().
+		Where("event_id = ? AND deleted_at IS NOT NULL", eventID).
+		Order("created_at DESC").
+		Find(&guests).Error
+	return guests, err
+}
+
 func (r *guestRepo) CountByEvent(ctx context.Context, eventID uuid.UUID) (int64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&model.Guest{}).
@@ -107,6 +138,15 @@ func (r *guestRepo) IsTokenTaken(ctx context.Context, token string) (bool, error
 	return count > 0, err
 }
 
+type RSVPExportRow struct {
+	GuestName   string
+	GuestPhone  string
+	Attendance  string
+	GuestCount  int
+	Message     string
+	SubmittedAt time.Time
+}
+
 type RSVPRepository interface {
 	Create(ctx context.Context, rsvp *model.RSVP) error
 	Update(ctx context.Context, rsvp *model.RSVP) error
@@ -115,6 +155,7 @@ type RSVPRepository interface {
 	CountRespondedByEvent(ctx context.Context, eventID uuid.UUID) (int64, error)
 	CountByAttendance(ctx context.Context, eventID uuid.UUID, attendance string) (int64, error)
 	SumGuestCountByAttendance(ctx context.Context, eventID uuid.UUID, attendance string) (int64, error)
+	ListExportRows(ctx context.Context, eventID uuid.UUID) ([]RSVPExportRow, error)
 	WithTx(tx *gorm.DB) RSVPRepository
 }
 
@@ -176,10 +217,22 @@ func (r *rsvpRepo) SumGuestCountByAttendance(ctx context.Context, eventID uuid.U
 	return sum, err
 }
 
+func (r *rsvpRepo) ListExportRows(ctx context.Context, eventID uuid.UUID) ([]RSVPExportRow, error) {
+	var rows []RSVPExportRow
+	err := r.db.WithContext(ctx).Table("rsvps").
+		Select("guests.name AS guest_name, guests.phone AS guest_phone, rsvps.attendance, rsvps.guest_count, rsvps.message, rsvps.submitted_at").
+		Joins("JOIN guests ON guests.id = rsvps.guest_id").
+		Where("rsvps.event_id = ?", eventID).
+		Order("rsvps.submitted_at DESC").
+		Scan(&rows).Error
+	return rows, err
+}
+
 type GuestbookRepository interface {
 	Create(ctx context.Context, msg *model.GuestbookMessage) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.GuestbookMessage, error)
 	ListByEvent(ctx context.Context, eventID uuid.UUID, approved bool) ([]model.GuestbookMessage, error)
+	ListByEventPaged(ctx context.Context, eventID uuid.UUID, approved bool, limit, offset int) ([]model.GuestbookMessage, int64, error)
 	Approve(ctx context.Context, id uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	WithTx(tx *gorm.DB) GuestbookRepository
@@ -217,6 +270,18 @@ func (r *guestbookRepo) ListByEvent(ctx context.Context, eventID uuid.UUID, appr
 		Order("created_at DESC").
 		Find(&msgs).Error
 	return msgs, err
+}
+
+func (r *guestbookRepo) ListByEventPaged(ctx context.Context, eventID uuid.UUID, approved bool, limit, offset int) ([]model.GuestbookMessage, int64, error) {
+	var msgs []model.GuestbookMessage
+	var total int64
+	query := r.db.WithContext(ctx).Model(&model.GuestbookMessage{}).
+		Where("event_id = ? AND is_approved = ?", eventID, approved)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&msgs).Error
+	return msgs, total, err
 }
 
 func (r *guestbookRepo) Approve(ctx context.Context, id uuid.UUID) error {
@@ -329,6 +394,8 @@ func (r *galleryPhotoRepo) Delete(ctx context.Context, id uuid.UUID) error {
 type AnalyticsEventRepository interface {
 	Create(ctx context.Context, event *model.AnalyticsEvent) error
 	CountByType(ctx context.Context, eventType string, since time.Time) (int64, error)
+	CountByTypeForEvent(ctx context.Context, eventID uuid.UUID, eventType string) (int64, error)
+	CountUniqueByEvent(ctx context.Context, eventID uuid.UUID) (int64, error)
 	SumRevenueLast30Days(ctx context.Context) (int64, error)
 	CountEventsByTypeLast30Days(ctx context.Context) (map[string]int64, error)
 }
@@ -349,6 +416,23 @@ func (r *analyticsEventRepo) CountByType(ctx context.Context, eventType string, 
 	var count int64
 	err := r.db.WithContext(ctx).Model(&model.AnalyticsEvent{}).
 		Where("event_type = ? AND created_at > ?", eventType, since).
+		Count(&count).Error
+	return count, err
+}
+
+func (r *analyticsEventRepo) CountByTypeForEvent(ctx context.Context, eventID uuid.UUID, eventType string) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.AnalyticsEvent{}).
+		Where("event_id = ? AND event_type = ?", eventID, eventType).
+		Count(&count).Error
+	return count, err
+}
+
+func (r *analyticsEventRepo) CountUniqueByEvent(ctx context.Context, eventID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.AnalyticsEvent{}).
+		Where("event_id = ? AND event_type = 'page_view'", eventID).
+		Distinct("ip_address").
 		Count(&count).Error
 	return count, err
 }

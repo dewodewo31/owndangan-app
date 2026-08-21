@@ -22,6 +22,7 @@ const (
 	DigitalGiftQRIS   Feature = "digital_gift.qris"
 	TemplateCustom    Feature = "template.custom_request"
 	EventMax          Feature = "event.max"
+	AnalyticsEnabled  Feature = "analytics.enabled"
 )
 
 type Resolver struct {
@@ -146,6 +147,33 @@ func (r *Resolver) DigitalGiftQRIS() bool {
 
 func (r *Resolver) TemplateCustom() bool {
 	return r.resolveBool(TemplateCustom)
+}
+
+func (r *Resolver) AnalyticsEnabled() bool {
+	if r.pkg == nil {
+		return true
+	}
+	if r.pkg.Code == "free" {
+		return false
+	}
+	if r.pkg.Features == nil {
+		return true
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(r.pkg.Features, &m); err != nil {
+		return true
+	}
+	v, ok := m[string(AnalyticsEnabled)]
+	if !ok {
+		return true
+	}
+	switch val := v.(type) {
+	case bool:
+		return val
+	case string:
+		return val == "true" || val == "1"
+	}
+	return true
 }
 
 func (r *Resolver) CanCreateGuest(currentCount int) bool {

@@ -33,7 +33,7 @@ func SeedPackages(db *gorm.DB) error {
 		DurationDays:  intPtr(30),
 		GuestLimit:    intPtr(100),
 		TemplateGroup: "standard",
-		Features:      datatypes.JSON(`{"guest.max":100,"gallery.max":100,"music.preset":true,"music.upload":true,"digital_gift.qris":true,"custom_domain":false,"rsvp.export":true,"template_group":"standard"}`),
+		Features:      datatypes.JSON(`{"guest.max":100,"gallery.max":100,"music.preset":true,"music.upload":true,"digital_gift.qris":true,"custom_domain":false,"rsvp.export":true,"analytics.enabled":true,"template_group":"standard"}`),
 		IsActive:      true,
 	}
 	if err := db.Create(starterPkg).Error; err != nil {
@@ -47,7 +47,7 @@ func SeedPackages(db *gorm.DB) error {
 		DurationDays:  intPtr(60),
 		GuestLimit:    nil,
 		TemplateGroup: "all",
-		Features:      datatypes.JSON(`{"guest.max":null,"gallery.max":null,"music.preset":true,"music.upload":true,"video.enabled":true,"digital_gift.qris":true,"custom_domain":true,"rsvp.export":true,"watermark.removed":true,"template_group":"all"}`),
+		Features:      datatypes.JSON(`{"guest.max":null,"gallery.max":null,"music.preset":true,"music.upload":true,"video.enabled":true,"digital_gift.qris":true,"custom_domain":true,"rsvp.export":true,"watermark.removed":true,"analytics.enabled":true,"template_group":"all"}`),
 		IsActive:      true,
 	}
 	if err := db.Create(premiumPkg).Error; err != nil {
@@ -60,7 +60,7 @@ func SeedPackages(db *gorm.DB) error {
 		Price:         999000,
 		GuestLimit:    nil,
 		TemplateGroup: "all",
-		Features:      datatypes.JSON(`{"guest.max":null,"gallery.max":null,"music.preset":true,"music.upload":true,"video.enabled":true,"digital_gift.qris":true,"custom_domain":true,"rsvp.export":true,"watermark.removed":true,"template.all":true,"template_group":"all"}`),
+		Features:      datatypes.JSON(`{"guest.max":null,"gallery.max":null,"music.preset":true,"music.upload":true,"video.enabled":true,"digital_gift.qris":true,"custom_domain":true,"rsvp.export":true,"watermark.removed":true,"template.all":true,"analytics.enabled":true,"template_group":"all"}`),
 		IsActive:      true,
 	}
 	if err := db.Create(allPkg).Error; err != nil {

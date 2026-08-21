@@ -39,6 +39,7 @@ type Dependencies struct {
 	GuestRepo              repository.GuestRepository
 	RSVPRepo               repository.RSVPRepository
 	GuestbookRepo          repository.GuestbookRepository
+	LoveStoryRepo          repository.LoveStoryRepository
 	DigitalGiftRepo        repository.DigitalGiftRepository
 	GalleryPhotoRepo       repository.GalleryPhotoRepository
 	AnalyticsRepo          repository.AnalyticsEventRepository
@@ -92,10 +93,16 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 	eventSvc := service.NewEventService(
 		db, deps.EventRepo, deps.EventSectionRepo, deps.DigitalGiftRepo,
 		deps.SubscriptionRepo, deps.PackageRepo, deps.GuestRepo, deps.RSVPRepo,
-		deps.GuestbookRepo, deps.TemplateRepo, deps.MusicRepo, deps.GalleryPhotoRepo,
+		deps.GuestbookRepo, deps.LoveStoryRepo, deps.TemplateRepo, deps.MusicRepo, deps.GalleryPhotoRepo,
 		deps.AuditLogRepo, deps.AnalyticsRepo, deps.Storage,
 	)
 	EventHandler := handler.NewEventHandler(eventSvc)
+
+	analyticsSvc := service.NewAnalyticsService(
+		deps.EventRepo, deps.AnalyticsRepo, deps.RSVPRepo, deps.SubscriptionRepo, deps.PackageRepo,
+	)
+	analyticsHandler := handler.NewAnalyticsHandler(analyticsSvc)
+
 	guestSvc := guest.NewService(
 		deps.GuestRepo, deps.EventRepo, deps.SubscriptionRepo, deps.PackageRepo, deps.AuditLogRepo,
 	)
@@ -166,6 +173,7 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 				r.Delete("/{id}", EventHandler.Delete)
 				r.Post("/{id}/publish", EventHandler.Publish)
 				r.Post("/{id}/unpublish", EventHandler.Unpublish)
+				r.Get("/{id}/analytics", analyticsHandler.GetEventAnalytics)
 
 				r.Put("/{id}/template", EventHandler.AssignTemplate)
 				r.Get("/{id}/sections", EventHandler.GetSections)
@@ -185,6 +193,12 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 					r.Post("/presets", EventHandler.AssignPresetMusic)
 					r.Delete("/", EventHandler.RemoveMusic)
 				})
+				r.Route("/{id}/love-stories", func(r chi.Router) {
+					r.Get("/", EventHandler.ListLoveStories)
+					r.Post("/", EventHandler.CreateLoveStory)
+					r.Put("/{storyID}", EventHandler.UpdateLoveStory)
+					r.Delete("/{storyID}", EventHandler.DeleteLoveStory)
+				})
 			})
 		})
 
@@ -196,6 +210,8 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 		})
 
 		r.Get("/e/{slug}", EventHandler.PublicView)
+
+		r.Post("/analytics/events", analyticsHandler.TrackEvent)
 
 		r.Route("/admin", func(r chi.Router) {
 			adminHandler.RegisterRoutes(r, authRequired, adminRequired)

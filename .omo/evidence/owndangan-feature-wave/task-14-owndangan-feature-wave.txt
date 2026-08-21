@@ -1,0 +1,22 @@
+task: owndangan-feature-wave todo 14 — analytics tracking + owner dashboard API + paid gating
+build_command: go build ./...
+build_exit_code: 0
+test_command: go test ./internal/api/handler/ -run TestAnalytics -count=1
+test_exit_code: 0 (6 tests passed)
+tests:
+  TestAnalytics_TrackEvent_Published — POST /api/v1/analytics/events on published event records row (200)
+  TestAnalytics_TrackEvent_InvalidType — invalid type -> 400
+  TestAnalytics_TrackEvent_UnpublishedNotFound — unpublished/missing event -> 404
+  TestAnalytics_GetEventAnalytics — owner GET returns views/unique_views/clicks/rsvp_count (inserted 3 page_view@2 IP + 1 whatsapp -> views=3 unique=2 whatsapp=1)
+  TestAnalytics_GetEventAnalytics_Entitlement — free package -> 403, starter -> 200
+  TestAnalytics_GetEventAnalytics_Ownership — other user's event -> 403/404
+pre_existing_failures_note: make test-unit still shows ONLY the 4 documented pre-existing failures unrelated to this plan: TestAuth_Register_ValidationError, TestE2E_ValidationError, TestEditor_Template_AssignAndList, TestAPI_PackagesList (400-vs-422 validation mismatch, missing premium template seed, packages count 3vs4). No new failures introduced.
+files:
+  backend/internal/api/server.go — public POST /api/v1/analytics/events + auth GET /api/v1/events/{id}/analytics
+  backend/internal/api/handler/analytics_handler.go (new)
+  backend/internal/service/analytics_service.go (new)
+  backend/internal/repository/guest_repo.go — CountByTypeForEvent + CountUniqueByEvent
+  backend/internal/service/entitlement/entitlement.go — AnalyticsEnabled()
+  backend/internal/database/seed.go — "analytics.enabled":true on starter/premium/all
+  backend/migrations/20260820000001_add_analytics_enabled.up/down.sql (new)
+  backend/internal/api/handler/analytics_integration_test.go (new)
