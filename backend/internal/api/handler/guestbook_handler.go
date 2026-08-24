@@ -47,7 +47,8 @@ func (h *GuestbookHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msgs, err := h.guestbookSvc.ListPublic(r.Context(), eventID)
+	_, page, perPage := parsePagination(r)
+	msgs, total, err := h.guestbookSvc.ListPublic(r.Context(), eventID, perPage, (page-1)*perPage)
 	if err != nil {
 		response.FromError(w, err, r)
 		return
@@ -57,7 +58,12 @@ func (h *GuestbookHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
 	for i, m := range msgs {
 		result[i] = guestbook.ToGuestbookResponse(&m)
 	}
-	response.JSON(w, http.StatusOK, result, r)
+	response.JSON(w, http.StatusOK, map[string]interface{}{
+		"items":    result,
+		"total":    total,
+		"page":     page,
+		"per_page": perPage,
+	}, r)
 }
 
 func (h *GuestbookHandler) ListAll(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +74,8 @@ func (h *GuestbookHandler) ListAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msgs, err := h.guestbookSvc.ListAll(r.Context(), userID, eventID)
+	_, page, perPage := parsePagination(r)
+	msgs, total, err := h.guestbookSvc.ListAll(r.Context(), userID, eventID, perPage, (page-1)*perPage)
 	if err != nil {
 		response.FromError(w, err, r)
 		return
@@ -78,7 +85,12 @@ func (h *GuestbookHandler) ListAll(w http.ResponseWriter, r *http.Request) {
 	for i, m := range msgs {
 		result[i] = guestbook.ToGuestbookResponse(&m)
 	}
-	response.JSON(w, http.StatusOK, result, r)
+	response.JSON(w, http.StatusOK, map[string]interface{}{
+		"items":    result,
+		"total":    total,
+		"page":     page,
+		"per_page": perPage,
+	}, r)
 }
 
 func (h *GuestbookHandler) Approve(w http.ResponseWriter, r *http.Request) {

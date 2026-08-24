@@ -10,7 +10,7 @@ export default function FinalCTA() {
     <section className="py-24 bg-background">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-10 sm:p-16 text-center shadow-2xl shadow-indigo-500/30">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/80 to-secondary p-10 sm:p-16 text-center shadow-elevation-3">
             {/* Decorative circles */}
             <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
             <div className="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
@@ -20,17 +20,17 @@ export default function FinalCTA() {
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 text-white text-sm font-medium mb-6 backdrop-blur">
                 <Sparkles className="h-4 w-4" /> Gratis untuk mulai
               </span>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-white tracking-tight leading-tight">
                 Siap membuat undangan
-                <span className="block text-indigo-100">untuk hari istimewamu?</span>
+                <span className="block text-primary-foreground/80">untuk hari istimewamu?</span>
               </h2>
-              <p className="mt-6 text-lg text-indigo-100 max-w-2xl mx-auto">
+              <p className="mt-6 text-lg text-primary-foreground/80 max-w-2xl mx-auto">
                 Buat undangan digital yang indah, mudah dibagikan, dan mudah dikelola.
                 Mulai sekarang — tanpa kartu kredit.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/register">
-                  <Button size="lg" className="w-full sm:w-auto bg-white text-primary hover:bg-indigo-50 border-0 shadow-lg">
+                  <Button size="lg" className="w-full sm:w-auto bg-white text-primary hover:bg-primary-container border-0 shadow-lg">
                     Buat Undangan Gratis
                   </Button>
                 </Link>

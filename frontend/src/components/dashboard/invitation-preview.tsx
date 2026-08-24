@@ -7,6 +7,7 @@ import type {
   Music,
   DigitalGift,
   TemplateSummary,
+  LoveStory,
 } from "@/lib/types"
 import { Calendar, MapPin, Clock, Music as MusicIcon } from "lucide-react"
 
@@ -43,6 +44,7 @@ type Props = {
   gallery: GalleryPhoto[]
   music: Music | null
   gift: DigitalGift | null
+  loveStories?: LoveStory[]
   template?: TemplateSummary | null
 }
 
@@ -52,6 +54,7 @@ export default function InvitationPreview({
   gallery,
   music,
   gift,
+  loveStories = [],
   template,
 }: Props) {
   if (!event) {
@@ -255,6 +258,30 @@ export default function InvitationPreview({
                   />
                 ))}
               </div>
+            </section>
+          )}
+
+          {sec.love_story_enabled && loveStories.length > 0 && (
+            <section className="space-y-3">
+              <h3 className="text-center font-semibold">Kisah Kami</h3>
+              {loveStories.map((st) => (
+                <div key={st.id} className="space-y-1 text-sm">
+                  {st.image_url && (
+                    <img src={st.image_url} alt={st.title} className="h-24 w-full rounded-lg object-cover" />
+                  )}
+                  <p className="font-medium" style={{ color: primary }}>{st.title}</p>
+                  <p className="text-muted-foreground">{st.story}</p>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {sec.video_enabled && event.video_url && (
+            <section className="space-y-2">
+              <h3 className="text-center font-semibold">Video</h3>
+              <a href={event.video_url} target="_blank" rel="noreferrer" className="block rounded-lg border p-3 text-center text-sm text-blue-600">
+                Tonton video pernikahan
+              </a>
             </section>
           )}
 

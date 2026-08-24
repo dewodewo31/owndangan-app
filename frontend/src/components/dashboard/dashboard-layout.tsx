@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 h-16 border-b border-border">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <span className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+          <span className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-plum to-rosegold text-white">
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
                 isActive
-                  ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20"
+                  ? "bg-gradient-to-r from-plum to-rosegold text-white shadow-elevation-1"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
@@ -83,9 +83,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </nav>
 
       <div className="p-4 border-t border-border">
-        <div className="rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 p-4 text-white">
+        <div className="rounded-xl bg-gradient-to-br from-plum to-rosegold p-4 text-white">
           <p className="text-sm font-semibold">Butuh bantuan?</p>
-          <p className="text-xs text-indigo-100 mt-1">
+          <p className="text-xs text-primary-foreground/80 mt-1">
             Lihat panduan penggunaan dashboard.
           </p>
           <button className="mt-3 text-xs font-semibold bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg transition-colors">
@@ -134,7 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-accent transition-colors"
             >
-              <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-xs font-bold">
+              <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-plum to-rosegold text-white text-xs font-bold">
                 {getInitials()}
               </span>
               <span className="hidden sm:block text-sm font-medium">{user?.name}</span>

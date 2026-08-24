@@ -109,6 +109,7 @@ type Event struct {
 	ReceptionAddress  string          `gorm:"type:text" json:"reception_address,omitempty"`
 	ReceptionMapURL   string          `gorm:"type:text" json:"reception_map_url,omitempty"`
 	MusicURL          string          `gorm:"type:varchar(255)" json:"music_url,omitempty"`
+	VideoURL          string          `gorm:"type:text" json:"video_url,omitempty"`
 	Status            string          `gorm:"type:varchar(20);not null;default:'draft'" json:"status"`
 	PublishedAt       *time.Time      `gorm:"type:timestamptz" json:"published_at,omitempty"`
 	ViewCount         int64           `gorm:"not null;default:0" json:"view_count"`
@@ -120,6 +121,7 @@ type Event struct {
 	Guests      []Guest           `gorm:"foreignKey:EventID" json:"guests,omitempty"`
 	GalleryPhotos []GalleryPhoto  `gorm:"foreignKey:EventID" json:"gallery_photos,omitempty"`
 	DigitalGift   *DigitalGift    `gorm:"foreignKey:EventID" json:"digital_gift,omitempty"`
+	LoveStories   []LoveStory     `gorm:"foreignKey:EventID" json:"love_stories,omitempty"`
 }
 
 type EventSection struct {
@@ -133,6 +135,7 @@ type EventSection struct {
 	MusicID              *uuid.UUID `gorm:"type:uuid" json:"music_id,omitempty"`
 	RSVPEnabled         bool      `gorm:"not null;default:true" json:"rsvp_enabled"`
 	GuestbookEnabled     bool      `gorm:"not null;default:true" json:"guestbook_enabled"`
+	LoveStoryEnabled     bool      `gorm:"not null;default:false" json:"love_story_enabled"`
 	DigitalGiftsEnabled  bool      `gorm:"not null;default:false" json:"digital_gifts_enabled"`
 	DressCode            string    `gorm:"type:varchar(500);default:''" json:"dress_code,omitempty"`
 	ClosingMessage       string    `gorm:"type:text;default:''" json:"closing_message,omitempty"`
@@ -211,6 +214,19 @@ type GalleryPhoto struct {
 	Caption    string    `gorm:"type:varchar(255)" json:"caption,omitempty"`
 	SortOrder  int       `gorm:"not null;default:0" json:"sort_order"`
 	CreatedAt  time.Time `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
+}
+
+type LoveStory struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	EventID   uuid.UUID `gorm:"type:uuid;not null;index" json:"event_id"`
+	Title     string    `gorm:"type:varchar(255);not null" json:"title"`
+	Story     string    `gorm:"type:text;not null" json:"story"`
+	Year      string    `gorm:"type:varchar(10)" json:"year,omitempty"`
+	Date      string    `gorm:"type:varchar(64)" json:"date,omitempty"`
+	ImageURL  string    `gorm:"type:text" json:"image_url,omitempty"`
+	SortOrder int       `gorm:"not null;default:0" json:"sort_order"`
+	CreatedAt time.Time `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
 }
 
 type Music struct {

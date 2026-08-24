@@ -4,7 +4,7 @@ import "github.com/owndangan/backend/internal/model"
 
 type SubmitRSVPRequest struct {
 	Token      string `json:"token" validate:"required,len=8"`
-	Attendance string `json:"attendance" validate:"required,oneof=attending not_attending"`
+	Attendance string `json:"attendance" validate:"required,oneof=attending not_attending maybe"`
 	GuestCount int    `json:"guest_count" validate:"min=1,max=10"`
 	Message    string `json:"message,omitempty" validate:"max=1000"`
 }
@@ -13,6 +13,7 @@ type RSVPRecap struct {
 	TotalResponded  int `json:"total_responded"`
 	Attending       int `json:"attending"`
 	NotAttending    int `json:"not_attending"`
+	Maybe           int `json:"maybe"`
 	TotalGuestCount int `json:"total_guest_count"`
 }
 

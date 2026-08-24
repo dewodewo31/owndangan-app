@@ -1,0 +1,7 @@
+-- +goose Down
+ALTER TABLE love_stories DROP COLUMN IF EXISTS year;
+ALTER TABLE love_stories DROP COLUMN IF EXISTS date;
+
+-- +goose Up
+ALTER TABLE love_stories ADD COLUMN IF NOT EXISTS year VARCHAR(10);
+ALTER TABLE love_stories ADD COLUMN IF NOT EXISTS date VARCHAR(64);

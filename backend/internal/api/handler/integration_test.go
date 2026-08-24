@@ -40,6 +40,7 @@ func setupTestServer(t *testing.T) (*api.Server, *gorm.DB) {
 		&model.RSVP{}, &model.GuestbookMessage{}, &model.DigitalGift{},
 		&model.GalleryPhoto{}, &model.AuditLog{}, &model.AnalyticsEvent{},
 		&model.WebhookIdempotency{}, &model.Template{}, &model.Music{},
+		&model.LoveStory{},
 	); err != nil {
 		t.Logf("auto migrate note: %v", err)
 	}
@@ -74,6 +75,7 @@ func setupTestServer(t *testing.T) (*api.Server, *gorm.DB) {
 		GuestRepo:              repository.NewGuestRepository(db),
 		RSVPRepo:               repository.NewRSVPRepository(db),
 		GuestbookRepo:          repository.NewGuestbookRepository(db),
+		LoveStoryRepo:          repository.NewLoveStoryRepository(db),
 		DigitalGiftRepo:        repository.NewDigitalGiftRepository(db),
 		GalleryPhotoRepo:       repository.NewGalleryPhotoRepository(db),
 		AnalyticsRepo:          repository.NewAnalyticsEventRepository(db),

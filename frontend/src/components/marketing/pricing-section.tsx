@@ -15,12 +15,12 @@ export default function PricingSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
           <div className="text-center mb-16 max-w-2xl mx-auto">
-            <span className="inline-block px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-primary text-sm font-medium mb-4">
+            <span className="inline-block px-3 py-1 rounded-full bg-secondary-container border border-secondary/40 text-primary text-sm font-medium mb-4">
               Harga
             </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-foreground tracking-tight">
               Paket yang sesuai
-              <span className="block bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 dengan kebutuhan kalian.
               </span>
             </h2>
@@ -37,8 +37,8 @@ export default function PricingSection() {
                 className={cn(
                   "relative h-full flex flex-col transition-all duration-300 hover:-translate-y-1.5",
                   plan.popular
-                    ? "border-transparent bg-gradient-to-b from-indigo-600 to-violet-700 text-white shadow-2xl shadow-indigo-500/30 md:scale-[1.05]"
-                    : "hover:shadow-xl hover:shadow-indigo-500/10 hover:border-primary/40"
+                    ? "border-transparent bg-gradient-to-b from-plum to-rosegold text-white shadow-elevation-3 md:scale-[1.05]"
+                    : "hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40"
                 )}
               >
                 {plan.popular && (
@@ -52,7 +52,7 @@ export default function PricingSection() {
                   <h3 className={cn("text-lg font-semibold", plan.popular ? "text-white" : "text-foreground")}>
                     {plan.name}
                   </h3>
-                  <p className={cn("text-sm mt-1", plan.popular ? "text-indigo-100" : "text-muted-foreground")}>
+                  <p className={cn("text-sm mt-1", plan.popular ? "text-primary-foreground/80" : "text-muted-foreground")}>
                     {plan.description}
                   </p>
 
@@ -60,7 +60,7 @@ export default function PricingSection() {
                     <span className={cn("text-4xl font-bold tracking-tight", plan.popular ? "text-white" : "text-foreground")}>
                       {formatCurrency(plan.price)}
                     </span>
-                    <span className={cn("text-sm", plan.popular ? "text-indigo-200" : "text-muted-foreground")}>
+                    <span className={cn("text-sm", plan.popular ? "text-primary-foreground/70" : "text-muted-foreground")}>
                       /{plan.duration}
                     </span>
                   </div>
@@ -76,7 +76,7 @@ export default function PricingSection() {
                         >
                           <Check className={cn("h-3 w-3", plan.popular ? "text-white" : "text-success")} />
                         </span>
-                        <span className={plan.popular ? "text-indigo-50" : "text-foreground"}>{feature}</span>
+                        <span className={plan.popular ? "text-primary-foreground" : "text-foreground"}>{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -86,8 +86,8 @@ export default function PricingSection() {
                       className={cn(
                         "w-full border-0",
                         plan.popular
-                          ? "bg-white text-primary hover:bg-indigo-50"
-                          : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white"
+                          ? "bg-white text-primary hover:bg-primary-container"
+                          : "bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white"
                       )}
                     >
                       {plan.cta}

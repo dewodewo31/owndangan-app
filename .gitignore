@@ -42,3 +42,6 @@ secrets/
 # Stray artifacts
 -l
 *.tsbuildinfo
+
+# Local tooling config (contains secrets) — never publish
+opencode.json

@@ -448,3 +448,82 @@ func (h *EventHandler) AssignPresetMusic(w http.ResponseWriter, r *http.Request)
 	}
 	response.JSON(w, http.StatusOK, music, r)
 }
+
+func (h *EventHandler) ListLoveStories(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	id, err := parseUUID(r, "id")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+	stories, err := h.eventSvc.ListLoveStories(r.Context(), userID, id)
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+	response.JSON(w, http.StatusOK, stories, r)
+}
+
+func (h *EventHandler) CreateLoveStory(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	id, err := parseUUID(r, "id")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+	var req dto.CreateLoveStoryRequest
+	if err := validator.ParseAndValidate(r, &req); err != nil {
+		validator.WriteError(w, r, err)
+		return
+	}
+	story, err := h.eventSvc.CreateLoveStory(r.Context(), userID, id, req)
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+	response.JSON(w, http.StatusCreated, story, r)
+}
+
+func (h *EventHandler) UpdateLoveStory(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	id, err := parseUUID(r, "id")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+	storyID, err := parseUUID(r, "storyID")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_STORY_ID", "Invalid story ID", r)
+		return
+	}
+	var req dto.UpdateLoveStoryRequest
+	if err := validator.ParseAndValidate(r, &req); err != nil {
+		validator.WriteError(w, r, err)
+		return
+	}
+	story, err := h.eventSvc.UpdateLoveStory(r.Context(), userID, id, storyID, req)
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+	response.JSON(w, http.StatusOK, story, r)
+}
+
+func (h *EventHandler) DeleteLoveStory(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	id, err := parseUUID(r, "id")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+	storyID, err := parseUUID(r, "storyID")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_STORY_ID", "Invalid story ID", r)
+		return
+	}
+	if err := h.eventSvc.DeleteLoveStory(r.Context(), userID, id, storyID); err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+	response.JSON(w, http.StatusOK, map[string]string{"message": "Love story deleted"}, r)
+}

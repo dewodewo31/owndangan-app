@@ -33,6 +33,7 @@ type EventService struct {
 	guestRepo        repository.GuestRepository
 	rsvpRepo         repository.RSVPRepository
 	guestbookRepo    repository.GuestbookRepository
+	loveStoryRepo    repository.LoveStoryRepository
 	templateRepo     repository.TemplateRepository
 	musicRepo        repository.MusicRepository
 	galleryPhotoRepo repository.GalleryPhotoRepository
@@ -51,6 +52,7 @@ func NewEventService(db *gorm.DB, eventRepo repository.EventRepository, sectionR
 	digitalRepo repository.DigitalGiftRepository, subRepo repository.SubscriptionRepository,
 	pkgRepo repository.PackageRepository, guestRepo repository.GuestRepository,
 	rsvpRepo repository.RSVPRepository, guestbookRepo repository.GuestbookRepository,
+	loveStoryRepo repository.LoveStoryRepository,
 	templateRepo repository.TemplateRepository, musicRepo repository.MusicRepository,
 	galleryPhotoRepo repository.GalleryPhotoRepository,
 	auditRepo repository.AuditLogRepository, analyticsRepo repository.AnalyticsEventRepository,
@@ -65,6 +67,7 @@ func NewEventService(db *gorm.DB, eventRepo repository.EventRepository, sectionR
 		guestRepo:        guestRepo,
 		rsvpRepo:         rsvpRepo,
 		guestbookRepo:    guestbookRepo,
+		loveStoryRepo:    loveStoryRepo,
 		templateRepo:     templateRepo,
 		musicRepo:        musicRepo,
 		galleryPhotoRepo: galleryPhotoRepo,
@@ -233,6 +236,9 @@ func (s *EventService) Update(ctx context.Context, userID uuid.UUID, eventID uui
 	}
 	if req.ReceptionMapURL != nil {
 		event.ReceptionMapURL = *req.ReceptionMapURL
+	}
+	if req.VideoURL != nil {
+		event.VideoURL = *req.VideoURL
 	}
 	if req.TemplateID != nil {
 		if err := s.ensureTemplateAssignable(ctx, userID, *req.TemplateID); err != nil {
@@ -407,12 +413,31 @@ func (s *EventService) GetPublicBySlug(ctx context.Context, slug string) (*dto.P
 
 	var guestbook []dto.GuestbookPublicDTO
 	if section != nil && section.GuestbookEnabled {
-		gb, _ := s.guestbookRepo.ListByEvent(ctx, event.ID, true)
+		gb, _, _ := s.guestbookRepo.ListByEventPaged(ctx, event.ID, true, 50, 0)
 		for _, msg := range gb {
 			guestbook = append(guestbook, dto.GuestbookPublicDTO{
 				Name:      msg.Name,
 				Message:   msg.Message,
 				CreatedAt: msg.CreatedAt.Format(time.RFC3339),
+			})
+		}
+	}
+
+	var loveStories []dto.LoveStoryPublicDTO
+	if section != nil && section.LoveStoryEnabled {
+		stories := event.LoveStories
+		sort.Slice(stories, func(i, j int) bool {
+			return stories[i].SortOrder < stories[j].SortOrder
+		})
+		for _, st := range stories {
+			loveStories = append(loveStories, dto.LoveStoryPublicDTO{
+				ID:        st.ID,
+				Title:     st.Title,
+				Story:     st.Story,
+				Year:      st.Year,
+				Date:      st.Date,
+				ImageURL:  st.ImageURL,
+				SortOrder: st.SortOrder,
 			})
 		}
 	}
@@ -442,6 +467,7 @@ func (s *EventService) GetPublicBySlug(ctx context.Context, slug string) (*dto.P
 
 	return &dto.PublicEventResponse{
 		Event: dto.PublicEventDetail{
+			ID:               event.ID,
 			Title:            event.Title,
 			CoupleName:       event.CoupleName,
 			GroomName:        event.GroomName,
@@ -456,6 +482,7 @@ func (s *EventService) GetPublicBySlug(ctx context.Context, slug string) (*dto.P
 			ReceptionVenue:   event.ReceptionVenue,
 			ReceptionAddress: event.ReceptionAddress,
 			ReceptionMapURL:  event.ReceptionMapURL,
+			VideoURL:         event.VideoURL,
 			ViewCount:        event.ViewCount,
 		},
 		Template:    templatePreview,
@@ -463,6 +490,7 @@ func (s *EventService) GetPublicBySlug(ctx context.Context, slug string) (*dto.P
 		Gallery:     gallery,
 		Guestbook:   guestbook,
 		DigitalGift: digitalGift,
+		LoveStories: loveStories,
 	}, nil
 }
 
@@ -607,6 +635,7 @@ func (s *EventService) GetSections(ctx context.Context, userID uuid.UUID, eventI
 		MusicID:             sec.MusicID,
 		RSVPEnabled:         sec.RSVPEnabled,
 		GuestbookEnabled:    sec.GuestbookEnabled,
+		LoveStoryEnabled:    sec.LoveStoryEnabled,
 		DigitalGiftsEnabled: sec.DigitalGiftsEnabled,
 		DressCode:           sec.DressCode,
 		ClosingMessage:      sec.ClosingMessage,
@@ -663,6 +692,9 @@ func (s *EventService) UpdateSections(ctx context.Context, userID uuid.UUID, eve
 	}
 	if req.GuestbookEnabled != nil {
 		sec.GuestbookEnabled = *req.GuestbookEnabled
+	}
+	if req.LoveStoryEnabled != nil {
+		sec.LoveStoryEnabled = *req.LoveStoryEnabled
 	}
 	if req.DigitalGiftsEnabled != nil {
 		sec.DigitalGiftsEnabled = *req.DigitalGiftsEnabled
@@ -1025,6 +1057,118 @@ func (s *EventService) musicToResponse(music *model.Music) *dto.MusicResponse {
 	}
 }
 
+func (s *EventService) loveStoryToResponse(story *model.LoveStory) dto.LoveStoryDTO {
+	return dto.LoveStoryDTO{
+		ID:        story.ID,
+		Title:     story.Title,
+		Story:     story.Story,
+		Year:      story.Year,
+		Date:      story.Date,
+		ImageURL:  story.ImageURL,
+		SortOrder: story.SortOrder,
+		CreatedAt: story.CreatedAt,
+		UpdatedAt: story.UpdatedAt,
+	}
+}
+
+func (s *EventService) ListLoveStories(ctx context.Context, userID, eventID uuid.UUID) ([]dto.LoveStoryDTO, error) {
+	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+		return nil, err
+	}
+	stories, err := s.loveStoryRepo.ListByEvent(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]dto.LoveStoryDTO, 0, len(stories))
+	for _, st := range stories {
+		result = append(result, s.loveStoryToResponse(&st))
+	}
+	return result, nil
+}
+
+func (s *EventService) CreateLoveStory(ctx context.Context, userID, eventID uuid.UUID, req dto.CreateLoveStoryRequest) (*dto.LoveStoryDTO, error) {
+	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+		return nil, err
+	}
+	if req.SortOrder == 0 {
+		count, _ := s.loveStoryRepo.CountByEvent(ctx, eventID)
+		req.SortOrder = int(count) + 1
+	}
+	story := &model.LoveStory{
+		EventID:   eventID,
+		Title:     req.Title,
+		Story:     req.Story,
+		Year:      req.Year,
+		Date:      req.Date,
+		ImageURL:  req.ImageURL,
+		SortOrder: req.SortOrder,
+	}
+	if err := s.loveStoryRepo.Create(ctx, story); err != nil {
+		return nil, err
+	}
+	_ = s.auditRepo.Create(ctx, &model.AuditLog{
+		UserID:     &userID,
+		Action:     "lovestory.created",
+		EntityType: "love_story",
+		EntityID:   &story.ID,
+	})
+	resp := s.loveStoryToResponse(story)
+	return &resp, nil
+}
+
+func (s *EventService) UpdateLoveStory(ctx context.Context, userID, eventID, storyID uuid.UUID, req dto.UpdateLoveStoryRequest) (*dto.LoveStoryDTO, error) {
+	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+		return nil, err
+	}
+	story, err := s.loveStoryRepo.GetByID(ctx, storyID)
+	if err != nil || story == nil || story.EventID != eventID {
+		return nil, errors.ErrNotFound
+	}
+	if req.Title != nil {
+		story.Title = *req.Title
+	}
+	if req.Story != nil {
+		story.Story = *req.Story
+	}
+	if req.Year != nil {
+		story.Year = *req.Year
+	}
+	if req.Date != nil {
+		story.Date = *req.Date
+	}
+	if req.ImageURL != nil {
+		story.ImageURL = *req.ImageURL
+	}
+	if req.SortOrder != nil {
+		story.SortOrder = *req.SortOrder
+	}
+	if err := s.loveStoryRepo.Update(ctx, story); err != nil {
+		return nil, err
+	}
+	resp := s.loveStoryToResponse(story)
+	return &resp, nil
+}
+
+func (s *EventService) DeleteLoveStory(ctx context.Context, userID, eventID, storyID uuid.UUID) error {
+	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+		return err
+	}
+	story, err := s.loveStoryRepo.GetByID(ctx, storyID)
+	if err != nil || story == nil || story.EventID != eventID {
+		return errors.ErrNotFound
+	}
+	if err := s.loveStoryRepo.Delete(ctx, storyID); err != nil {
+		return err
+	}
+	_ = s.auditRepo.Create(ctx, &model.AuditLog{
+		UserID:     &userID,
+		Action:     "lovestory.deleted",
+		EntityType: "love_story",
+		EntityID:   &storyID,
+	})
+	return nil
+}
+
 func encodeJSONSlice(data []map[string]interface{}) datatypes.JSON {
 	if data == nil {
 		return datatypes.JSON(nil)
@@ -1065,6 +1209,7 @@ func (s *EventService) toResponse(ctx context.Context, event *model.Event) *dto.
 		ReceptionAddress: event.ReceptionAddress,
 		ReceptionMapURL:  event.ReceptionMapURL,
 		MusicURL:         event.MusicURL,
+		VideoURL:         event.VideoURL,
 		Status:           event.Status,
 		PublishedAt:      event.PublishedAt,
 		ViewCount:        event.ViewCount,
@@ -1132,6 +1277,7 @@ func toSectionsDTO(section *model.EventSection, music *dto.MusicDTO) *dto.EventS
 		Music:               music,
 		RSVPEnabled:         section.RSVPEnabled,
 		GuestbookEnabled:    section.GuestbookEnabled,
+		LoveStoryEnabled:    section.LoveStoryEnabled,
 		DigitalGiftsEnabled: section.DigitalGiftsEnabled,
 		DressCode:           section.DressCode,
 		ClosingMessage:      section.ClosingMessage,

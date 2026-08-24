@@ -120,6 +120,18 @@ func (s *Service) ListByEvent(ctx context.Context, userID uuid.UUID, eventID uui
 	return s.guestRepo.ListByEvent(ctx, eventID, page, perPage)
 }
 
+func (s *Service) ListDeleted(ctx context.Context, userID uuid.UUID, eventID uuid.UUID) ([]model.Guest, error) {
+	event, err := s.eventRepo.GetByID(ctx, eventID)
+	if err != nil || event == nil {
+		return nil, errors.ErrNotFound
+	}
+	if event.UserID != userID {
+		return nil, errors.ErrForbidden
+	}
+
+	return s.guestRepo.ListDeleted(ctx, eventID)
+}
+
 func (s *Service) Update(ctx context.Context, userID uuid.UUID, guestID uuid.UUID, req UpdateGuestRequest) (*model.Guest, error) {
 	guest, err := s.guestRepo.GetByID(ctx, guestID)
 	if err != nil || guest == nil {
@@ -163,6 +175,34 @@ func (s *Service) Update(ctx context.Context, userID uuid.UUID, guestID uuid.UUI
 	})
 
 	return guest, nil
+}
+
+func (s *Service) Restore(ctx context.Context, eventID uuid.UUID, guestID uuid.UUID, userID uuid.UUID) error {
+	guest, err := s.guestRepo.GetByIdUnscoped(ctx, guestID)
+	if err != nil || guest == nil {
+		return errors.ErrNotFound
+	}
+
+	event, err := s.eventRepo.GetByID(ctx, guest.EventID)
+	if err != nil || event == nil {
+		return errors.ErrNotFound
+	}
+	if event.UserID != userID {
+		return errors.ErrForbidden
+	}
+
+	if err := s.guestRepo.Restore(ctx, guestID, eventID); err != nil {
+		return fmt.Errorf("restore guest: %w", err)
+	}
+
+	_ = s.auditRepo.Create(ctx, &model.AuditLog{
+		UserID:     &userID,
+		Action:     "guest.restored",
+		EntityType: "guest",
+		EntityID:   &guest.ID,
+	})
+
+	return nil
 }
 
 func (s *Service) Delete(ctx context.Context, userID uuid.UUID, guestID uuid.UUID) error {

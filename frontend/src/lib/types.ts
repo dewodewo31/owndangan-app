@@ -75,6 +75,7 @@ export type WeddingEvent = {
   reception_address?: string
   reception_map_url?: string
   music_url?: string
+  video_url?: string
   status: string
   published_at?: string | null
   view_count?: number
@@ -95,6 +96,7 @@ export type EventSections = {
   music_id?: string | null
   rsvp_enabled: boolean
   guestbook_enabled: boolean
+  love_story_enabled?: boolean
   digital_gifts_enabled: boolean
   dress_code?: string
   closing_message?: string
@@ -119,6 +121,18 @@ export type Music = {
   file_url?: string
   preset?: string
   is_preset: boolean
+}
+
+export type LoveStory = {
+  id: string
+  title: string
+  story: string
+  year?: string
+  date?: string
+  image_url?: string
+  sort_order: number
+  created_at?: string
+  updated_at?: string
 }
 
 export type DigitalGift = {
@@ -154,5 +168,21 @@ export type PublicEvent = {
   reception_venue?: string
   reception_address?: string
   reception_map_url?: string
+  video_url?: string
   view_count?: number
+}
+
+export type PublicEventResponse = {
+  event: PublicEvent
+  sections?: EventSections
+  gallery?: GalleryPhoto[]
+  guestbook?: GuestbookMessage[]
+  love_stories?: LoveStory[]
+  digital_gift?: DigitalGift
+}
+
+export type GuestbookMessage = {
+  name: string
+  message: string
+  created_at: string
 }

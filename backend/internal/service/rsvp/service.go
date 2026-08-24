@@ -57,8 +57,8 @@ func (s *Service) Submit(ctx context.Context, eventID uuid.UUID, req SubmitRSVPR
 		return existingRSVP, nil
 	}
 
-	if req.Attendance != "attending" && req.Attendance != "not_attending" {
-		return nil, fmt.Errorf("%w: attendance must be 'attending' or 'not_attending'", errors.ErrInvalidInput)
+	if req.Attendance != "attending" && req.Attendance != "not_attending" && req.Attendance != "maybe" {
+		return nil, fmt.Errorf("%w: attendance must be 'attending', 'not_attending', or 'maybe'", errors.ErrInvalidInput)
 	}
 	if req.GuestCount < 1 {
 		req.GuestCount = 1
@@ -109,12 +109,26 @@ func (s *Service) GetRecap(ctx context.Context, userID uuid.UUID, eventID uuid.U
 
 	attending, _ := s.rsvpRepo.CountByAttendance(ctx, eventID, "attending")
 	notAttending, _ := s.rsvpRepo.CountByAttendance(ctx, eventID, "not_attending")
+	maybe, _ := s.rsvpRepo.CountByAttendance(ctx, eventID, "maybe")
 	attendingGuests, _ := s.rsvpRepo.SumGuestCountByAttendance(ctx, eventID, "attending")
 
 	return &RSVPRecap{
-		TotalResponded:   int(attending + notAttending),
+		TotalResponded:   int(attending + notAttending + maybe),
 		Attending:        int(attending),
 		NotAttending:     int(notAttending),
+		Maybe:            int(maybe),
 		TotalGuestCount:  int(attendingGuests),
 	}, nil
+}
+
+func (s *Service) ListForExport(ctx context.Context, userID uuid.UUID, eventID uuid.UUID) ([]repository.RSVPExportRow, error) {
+	event, err := s.eventRepo.GetByID(ctx, eventID)
+	if err != nil || event == nil {
+		return nil, errors.ErrNotFound
+	}
+	if event.UserID != userID {
+		return nil, errors.ErrForbidden
+	}
+
+	return s.rsvpRepo.ListExportRows(ctx, eventID)
 }

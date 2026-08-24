@@ -276,6 +276,7 @@ func AutoMigrateDB(cfg config.DatabaseConfig, log zerolog.Logger) error {
 		&model.GuestbookMessage{},
 		&model.DigitalGift{},
 		&model.GalleryPhoto{},
+		&model.LoveStory{},
 		&model.AuditLog{},
 		&model.AnalyticsEvent{},
 		&model.WebhookIdempotency{},

@@ -1,7 +1,11 @@
 package handler
 
 import (
+	"encoding/csv"
+	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/owndangan/backend/internal/api/middleware"
@@ -78,6 +82,47 @@ func (h *RSVPHandler) Recap(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, recap, r)
 }
 
+func (h *RSVPHandler) Export(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	eventID, err := parseUUID(r, "eventID")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+
+	rows, err := h.rsvpSvc.ListForExport(r.Context(), userID, eventID)
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=rsvp-%s.csv", eventID.String()[:8]))
+	w.WriteHeader(http.StatusOK)
+
+	cw := csv.NewWriter(w)
+	_ = cw.Write([]string{"nama", "telepon", "kehadiran", "jumlah_tamu", "pesan", "waktu_kirim"})
+	for _, row := range rows {
+		attendance := map[string]string{
+			"attending":     "hadir",
+			"not_attending": "tidak_hadir",
+			"maybe":         "ragu",
+		}[row.Attendance]
+		if attendance == "" {
+			attendance = row.Attendance
+		}
+		_ = cw.Write([]string{
+			row.GuestName,
+			row.GuestPhone,
+			attendance,
+			strconv.Itoa(row.GuestCount),
+			row.Message,
+			row.SubmittedAt.Format(time.RFC3339),
+		})
+	}
+	cw.Flush()
+}
+
 func (h *RSVPHandler) RegisterRoutes(r chi.Router, authRequired func(http.Handler) http.Handler, publicHandler func(http.Handler) http.Handler) {
 	r.Group(func(r chi.Router) {
 		r.Use(publicHandler)
@@ -87,5 +132,6 @@ func (h *RSVPHandler) RegisterRoutes(r chi.Router, authRequired func(http.Handle
 		r.Use(authRequired)
 		r.Get("/{eventID}", h.List)
 		r.Get("/{eventID}/recap", h.Recap)
+		r.Get("/{eventID}/export", h.Export)
 	})
 }

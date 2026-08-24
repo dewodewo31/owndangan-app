@@ -144,14 +144,58 @@ func (h *GuestHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, result, r)
 }
 
+func (h *GuestHandler) Restore(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	eventID, err := parseUUID(r, "eventID")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+	guestID, err := parseUUID(r, "guestID")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid guest ID", r)
+		return
+	}
+
+	if err := h.guestSvc.Restore(r.Context(), eventID, guestID, userID); err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{"message": "Guest restored"}, r)
+}
+
+func (h *GuestHandler) ListDeleted(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	eventID, err := parseUUID(r, "eventID")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+
+	guests, err := h.guestSvc.ListDeleted(r.Context(), userID, eventID)
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+
+	result := make([]guest.GuestResponse, len(guests))
+	for i, g := range guests {
+		result[i] = guest.ToGuestResponse(&g)
+	}
+	response.JSON(w, http.StatusOK, result, r)
+}
+
 func (h *GuestHandler) RegisterRoutes(r chi.Router, authRequired func(http.Handler) http.Handler) {
 	r.Group(func(r chi.Router) {
 		r.Use(authRequired)
 		r.Post("/", h.Create)
 		r.Get("/", h.List)
 		r.Post("/import", h.ImportCSV)
+		r.Get("/deleted", h.ListDeleted)
 		r.Get("/{guestID}", h.GetByID)
 		r.Put("/{guestID}", h.Update)
 		r.Delete("/{guestID}", h.Delete)
+		r.Post("/{guestID}/restore", h.Restore)
 	})
 }

@@ -47,6 +47,7 @@ type UpdateEventRequest struct {
 	ReceptionVenue   *string    `json:"reception_venue,omitempty" validate:"omitempty,max=1000"`
 	ReceptionAddress *string    `json:"reception_address,omitempty" validate:"omitempty,max=2000"`
 	ReceptionMapURL  *string    `json:"reception_map_url,omitempty" validate:"omitempty,url"`
+	VideoURL         *string    `json:"video_url,omitempty" validate:"omitempty,max=2000"`
 	TemplateID       *uuid.UUID `json:"template_id,omitempty"`
 }
 
@@ -70,6 +71,7 @@ type EventResponse struct {
 	ReceptionAddress string     `json:"reception_address,omitempty"`
 	ReceptionMapURL  string     `json:"reception_map_url,omitempty"`
 	MusicURL         string     `json:"music_url,omitempty"`
+	VideoURL         string     `json:"video_url,omitempty"`
 	Status           string     `json:"status"`
 	PublishedAt      *time.Time `json:"published_at,omitempty"`
 	ViewCount        int64      `json:"view_count"`
@@ -86,9 +88,11 @@ type PublicEventResponse struct {
 	Gallery     []GalleryPhotoDTO     `json:"gallery,omitempty"`
 	Guestbook   []GuestbookPublicDTO  `json:"guestbook,omitempty"`
 	DigitalGift *DigitalGiftPublicDTO `json:"digital_gift,omitempty"`
+	LoveStories []LoveStoryPublicDTO  `json:"love_stories,omitempty"`
 }
 
 type PublicEventDetail struct {
+	ID               uuid.UUID `json:"id"`
 	Title            string `json:"title"`
 	CoupleName       string `json:"couple_name,omitempty"`
 	GroomName        string `json:"groom_name,omitempty"`
@@ -103,6 +107,7 @@ type PublicEventDetail struct {
 	ReceptionVenue   string `json:"reception_venue,omitempty"`
 	ReceptionAddress string `json:"reception_address,omitempty"`
 	ReceptionMapURL  string `json:"reception_map_url,omitempty"`
+	VideoURL         string `json:"video_url,omitempty"`
 	ViewCount        int64  `json:"view_count"`
 }
 
@@ -122,6 +127,7 @@ type EventSectionsDTO struct {
 	Music               *MusicDTO `json:"music,omitempty"`
 	RSVPEnabled         bool      `json:"rsvp_enabled"`
 	GuestbookEnabled    bool      `json:"guestbook_enabled"`
+	LoveStoryEnabled    bool      `json:"love_story_enabled"`
 	DigitalGiftsEnabled bool      `json:"digital_gifts_enabled"`
 	DressCode           string    `json:"dress_code,omitempty"`
 	ClosingMessage      string    `json:"closing_message,omitempty"`
@@ -167,6 +173,7 @@ type UpdateSectionsRequest struct {
 	MusicID             *uuid.UUID `json:"music_id,omitempty"`
 	RSVPEnabled         *bool      `json:"rsvp_enabled,omitempty"`
 	GuestbookEnabled    *bool      `json:"guestbook_enabled,omitempty"`
+	LoveStoryEnabled    *bool      `json:"love_story_enabled,omitempty"`
 	DigitalGiftsEnabled *bool      `json:"digital_gifts_enabled,omitempty"`
 	DressCode           *string    `json:"dress_code,omitempty"`
 	ClosingMessage      *string    `json:"closing_message,omitempty"`
@@ -188,6 +195,7 @@ type SectionsResponse struct {
 	MusicID             *uuid.UUID `json:"music_id,omitempty"`
 	RSVPEnabled         bool       `json:"rsvp_enabled"`
 	GuestbookEnabled    bool       `json:"guestbook_enabled"`
+	LoveStoryEnabled    bool       `json:"love_story_enabled"`
 	DigitalGiftsEnabled bool       `json:"digital_gifts_enabled"`
 	DressCode           string     `json:"dress_code,omitempty"`
 	ClosingMessage      string     `json:"closing_message,omitempty"`
@@ -246,4 +254,48 @@ type TemplateSummary struct {
 	ThumbnailURL string         `json:"thumbnail_url,omitempty"`
 	CSSConfig    datatypes.JSON `json:"css_config,omitempty"`
 	LayoutConfig datatypes.JSON `json:"layout_config,omitempty"`
+}
+
+type LoveStoryDTO struct {
+	ID        uuid.UUID `json:"id"`
+	Title     string    `json:"title"`
+	Story     string    `json:"story"`
+	Year      string    `json:"year,omitempty"`
+	Date      string    `json:"date,omitempty"`
+	ImageURL  string    `json:"image_url,omitempty"`
+	SortOrder int       `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type LoveStoryPublicDTO struct {
+	ID        uuid.UUID `json:"id"`
+	Title     string    `json:"title"`
+	Story     string    `json:"story"`
+	Year      string    `json:"year,omitempty"`
+	Date      string    `json:"date,omitempty"`
+	ImageURL  string    `json:"image_url,omitempty"`
+	SortOrder int       `json:"sort_order"`
+}
+
+type CreateLoveStoryRequest struct {
+	Title     string `json:"title" validate:"required,min=1,max=255"`
+	Story     string `json:"story" validate:"required,min=1,max=5000"`
+	Year      string `json:"year" validate:"omitempty,max=10"`
+	Date      string `json:"date" validate:"omitempty,max=64"`
+	ImageURL  string `json:"image_url" validate:"omitempty,url,max=2000"`
+	SortOrder int    `json:"sort_order"`
+}
+
+type UpdateLoveStoryRequest struct {
+	Title     *string `json:"title" validate:"omitempty,min=1,max=255"`
+	Story     *string `json:"story" validate:"omitempty,min=1,max=5000"`
+	Year      *string `json:"year" validate:"omitempty,max=10"`
+	Date      *string `json:"date" validate:"omitempty,max=64"`
+	ImageURL  *string `json:"image_url" validate:"omitempty,url,max=2000"`
+	SortOrder *int    `json:"sort_order"`
+}
+
+type LoveStoryResponse struct {
+	LoveStory LoveStoryDTO `json:"love_story"`
 }

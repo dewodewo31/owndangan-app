@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MessageSquare, CheckCircle2, XCircle, Users, CalendarCheck } from "lucide-react"
+import { MessageSquare, CheckCircle2, XCircle, Users, CalendarCheck, Download, HelpCircle } from "lucide-react"
 import ProtectedRoute from "@/components/dashboard/protected-route"
 import DashboardLayout from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,12 +16,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import api from "@/lib/api"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface RSVPRecap {
   total_responded: number
   attending: number
   not_attending: number
+  maybe: number
   total_guest_count: number
 }
 
@@ -37,6 +39,7 @@ interface RSVP {
 export default function RSVPPage() {
   const [recap, setRecap] = useState<RSVPRecap | null>(null)
   const [rsvps, setRsvps] = useState<RSVP[]>([])
+  const [eventID, setEventID] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -48,10 +51,11 @@ export default function RSVPPage() {
       const eventsRes = await api.get('/events')
       const events = eventsRes.data?.data || []
       if (events.length > 0) {
-        const eventID = events[0].id
+        const id = events[0].id
+        setEventID(id)
         const [recapRes, rsvpsRes] = await Promise.all([
-          api.get(`/rsvp/${eventID}/recap`),
-          api.get(`/rsvp/${eventID}`),
+          api.get(`/rsvp/${id}/recap`),
+          api.get(`/rsvp/${id}`),
         ])
         setRecap(recapRes.data?.data)
         setRsvps(rsvpsRes.data?.data || [])
@@ -63,22 +67,44 @@ export default function RSVPPage() {
     }
   }
 
+  const exportCSV = async () => {
+    if (!eventID) return
+    try {
+      const res = await api.get(`/rsvp/${eventID}/export`, { responseType: "blob" })
+      const url = URL.createObjectURL(res.data as Blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `rsvp-${eventID}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Failed to export RSVP:", error)
+      alert("Gagal mengekspor data RSVP")
+    }
+  }
+
   const recapCards = [
-    { title: "Total Respon", value: recap?.total_responded || 0, icon: CalendarCheck, color: "text-indigo-500 bg-indigo-500/10" },
-    { title: "Hadir", value: recap?.attending || 0, icon: CheckCircle2, color: "text-emerald-500 bg-emerald-500/10" },
-    { title: "Tidak Hadir", value: recap?.not_attending || 0, icon: XCircle, color: "text-rose-500 bg-rose-500/10" },
-    { title: "Total Tamu", value: recap?.total_guest_count || 0, icon: Users, color: "text-violet-500 bg-violet-500/10" },
+    { title: "Total Respon", value: recap?.total_responded || 0, icon: CalendarCheck, color: "text-primary bg-primary-container" },
+    { title: "Hadir", value: recap?.attending || 0, icon: CheckCircle2, color: "text-success bg-success/10" },
+    { title: "Tidak Hadir", value: recap?.not_attending || 0, icon: XCircle, color: "text-secondary bg-secondary-container" },
+    { title: "Ragu", value: recap?.maybe || 0, icon: HelpCircle, color: "text-warning bg-warning/10" },
+    { title: "Total Tamu", value: recap?.total_guest_count || 0, icon: Users, color: "text-primary bg-secondary-container" },
   ]
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">RSVP</h1>
-            <p className="mt-1 text-muted-foreground">
-              Pantau konfirmasi kehadiran tamu secara real-time.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">RSVP</h1>
+              <p className="mt-1 text-muted-foreground">
+                Pantau konfirmasi kehadiran tamu secara real-time.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={exportCSV} disabled={!eventID}>
+              <Download className="h-4 w-4 mr-2" /> Ekspor CSV
+            </Button>
           </div>
 
           {loading ? (
@@ -96,13 +122,13 @@ export default function RSVPPage() {
                 {recapCards.map((stat) => (
                   <Card
                     key={stat.title}
-                    className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/5"
+                    className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5"
                   >
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="text-sm text-muted-foreground">{stat.title}</p>
-                          <p className="mt-2 text-3xl font-bold text-foreground">{stat.value}</p>
+                          <p className="mt-2 text-3xl font-bold text-foreground font-inter tabular-nums">{stat.value}</p>
                         </div>
                         <span className={cn("inline-flex items-center justify-center h-11 w-11 rounded-xl", stat.color)}>
                           <stat.icon className="h-5 w-5" />
@@ -143,8 +169,10 @@ export default function RSVPPage() {
                           <TableRow key={rsvp.id}>
                             <TableCell className="font-medium">{rsvp.guest_id}</TableCell>
                             <TableCell>
-                              <Badge variant={rsvp.attendance === 'attending' ? 'success' : 'destructive'}>
-                                {rsvp.attendance === 'attending' ? 'Hadir' : 'Tidak Hadir'}
+                              <Badge
+                                variant={rsvp.attendance === 'attending' ? 'success' : rsvp.attendance === 'maybe' ? 'secondary' : 'destructive'}
+                              >
+                                {rsvp.attendance === 'attending' ? 'Hadir' : rsvp.attendance === 'maybe' ? 'Ragu' : 'Tidak Hadir'}
                               </Badge>
                             </TableCell>
                             <TableCell>{rsvp.guest_count}</TableCell>

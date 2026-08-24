@@ -1,0 +1,11 @@
+bin
+tmp
+.env
+.env.*
+!.env.example
+coverage*
+*.test
+.DS_Store
+*.md
+.git
+.gitignore

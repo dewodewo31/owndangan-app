@@ -2,35 +2,35 @@
 
 ## Design System
 
-The frontend uses **Tailwind CSS** with a design token approach. All colors, fonts, spacing, and shadows are defined in `tailwind.config.ts` so the UI remains consistent across the landing page, dashboards, and public invitations.
+The frontend follows [`docs/design.md`](../design.md). It is built on **Material 3** foundations
+with the OWNDANGAN product identity (**Deep Plum / Rose Gold**) expressed through semantic design
+tokens.
 
-## Tailwind Configuration
+All colors, fonts, radius, and shadows are defined as M3 semantic tokens in `src/globals.css`
+(Tailwind v4 `@theme`). Components must reference tokens (`bg-primary`, `bg-primary-container`,
+`text-on-surface-variant`, `from-plum to-rosegold`) and never hard-code colors.
 
-```ts
-// tailwind.config.ts
-export default {
-  content: ['./src/**/*.{ts,tsx}'],
-  theme: {
-    extend: {
-      colors: {
-        primary: { DEFAULT: '#6366f1', 50: '#eef2ff', ... 900: '#312e81' },
-        accent: { DEFAULT: '#f59e0b' },
-        surface: { DEFAULT: '#ffffff' },
-      },
-      fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-playfair)', 'serif'],
-      },
-    },
-  },
-};
-```
+## Tokens
 
-**Rules:**
-- Do NOT hardcode colors in components. Use design tokens (`bg-primary`, `text-slate-600`).
-- Do NOT add new color tokens without updating this config file.
-- Use `font-display` (Playfair Display) for headings and `font-sans` (Inter) for body text.
-- Dark mode: toggled via `darkMode: 'class'`, driven by a ThemeProvider that respects `prefers-color-scheme`.
+- **Color:** full M3 semantic set — `primary`/`primary-container`/`on-primary-container`,
+  `secondary`/`secondary-container`, `tertiary`/`tertiary-container`, `surface` variants
+  (`surface-container-low/container/container-high`, `surface-variant`), `on-surface-variant`,
+  `outline`/`outline-variant`, plus `error`, `success`, `warning` with containers. Light + dark
+  palettes via `:root` and `.dark`.
+- **Product brand:** `--color-plum` (Deep Plum `#4a1b33`) and `--color-rosegold` (Rose Gold
+  `#a75e6e`) are fixed, theme-independent brand colors for decorative panels/gradients that carry
+  white text (`from-plum to-rosegold`). Interactive UI uses the semantic M3 tokens instead.
+- **Shape:** small = `8px` inputs/chips/buttons (`rounded-lg`), medium = `16px` cards/dialogs
+  (`rounded-2xl`), extra-large = `28px` panels/sheets.
+- **Elevation:** `shadow-elevation-0..3` mapping to the M3 0/1/3/6dp levels.
+- **Typography:** `--text-display/heading/title/body/label` scale (57/22/16/14/11px).
+
+## Typography
+
+- **UI font:** **Plus Jakarta Sans** (loaded site-wide in `app/layout.tsx`, fallback to system sans).
+- **Invitation fonts:** Playfair Display and Cormorant Garamond are loaded for templated public
+  invitations; each invitation template owns its decorative pair (see `src/templates/`).
+- Old guidance to use Inter + Playfair-for-headings is obsolete.
 
 ## Responsive Design
 
@@ -99,7 +99,15 @@ Toasts auto-dismiss after 4 seconds (8 for errors). Stacked at bottom-right on d
 - Color contrast meets WCAG AA (minimum 4.5:1 for text).
 - Focus outlines are visible (`focus-visible:ring-2`).
 - All interactive elements are reachable via keyboard.
+- Animations respect `prefers-reduced-motion`.
 
 ## Content Loading
 
 Use `next/image` for all images with explicit width/height to prevent CLS (Cumulative Layout Shift). Lazy-load images below the fold. Gallery images use `loading="lazy"` and `decoding="async"`.
+
+## Dashboard
+
+The user dashboard follows the §17 hierarchy of `docs/design.md`: time-aware greeting, overview
+stat cards (Undangan / Tamu / RSVP / Dilihat), "Undangan Kamu" invitation cards with status and
+Edit/Pratinjau actions, and a "Aktivitas Terbaru" list. Avoid a generic enterprise admin look —
+the goal is helping the wedding owner complete and manage an invitation.

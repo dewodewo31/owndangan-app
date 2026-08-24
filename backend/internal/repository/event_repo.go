@@ -41,6 +41,7 @@ func (r *eventRepo) GetByID(ctx context.Context, id uuid.UUID) (*model.Event, er
 	err := r.db.WithContext(ctx).
 		Preload("Sections").
 		Preload("DigitalGift").
+		Preload("LoveStories").
 		Where("id = ? AND deleted_at IS NULL", id).
 		First(&event).Error
 	if err != nil {
@@ -55,6 +56,7 @@ func (r *eventRepo) GetBySlug(ctx context.Context, slug string) (*model.Event, e
 		Preload("Sections").
 		Preload("DigitalGift").
 		Preload("GalleryPhotos").
+		Preload("LoveStories").
 		Where("slug = ? AND deleted_at IS NULL", slug).
 		First(&event).Error
 	if err != nil {
@@ -191,6 +193,64 @@ type MusicRepository interface {
 	Create(ctx context.Context, m *model.Music) error
 	GetByEvent(ctx context.Context, eventID uuid.UUID) (*model.Music, error)
 	Delete(ctx context.Context, id uuid.UUID) error
+}
+
+type LoveStoryRepository interface {
+	ListByEvent(ctx context.Context, eventID uuid.UUID) ([]model.LoveStory, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*model.LoveStory, error)
+	Create(ctx context.Context, story *model.LoveStory) error
+	Update(ctx context.Context, story *model.LoveStory) error
+	Delete(ctx context.Context, id uuid.UUID) error
+	CountByEvent(ctx context.Context, eventID uuid.UUID) (int64, error)
+	WithTx(tx *gorm.DB) LoveStoryRepository
+}
+
+type loveStoryRepo struct {
+	db *gorm.DB
+}
+
+func NewLoveStoryRepository(db *gorm.DB) LoveStoryRepository {
+	return &loveStoryRepo{db: db}
+}
+
+func (r *loveStoryRepo) WithTx(tx *gorm.DB) LoveStoryRepository {
+	return &loveStoryRepo{db: tx}
+}
+
+func (r *loveStoryRepo) ListByEvent(ctx context.Context, eventID uuid.UUID) ([]model.LoveStory, error) {
+	var stories []model.LoveStory
+	err := r.db.WithContext(ctx).
+		Where("event_id = ?", eventID).
+		Order("sort_order ASC, created_at ASC").
+		Find(&stories).Error
+	return stories, err
+}
+
+func (r *loveStoryRepo) GetByID(ctx context.Context, id uuid.UUID) (*model.LoveStory, error) {
+	var story model.LoveStory
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&story).Error
+	if err != nil {
+		return nil, err
+	}
+	return &story, nil
+}
+
+func (r *loveStoryRepo) Create(ctx context.Context, story *model.LoveStory) error {
+	return r.db.WithContext(ctx).Create(story).Error
+}
+
+func (r *loveStoryRepo) Update(ctx context.Context, story *model.LoveStory) error {
+	return r.db.WithContext(ctx).Save(story).Error
+}
+
+func (r *loveStoryRepo) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&model.LoveStory{}, id).Error
+}
+
+func (r *loveStoryRepo) CountByEvent(ctx context.Context, eventID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.LoveStory{}).Where("event_id = ?", eventID).Count(&count).Error
+	return count, err
 }
 
 type musicRepo struct {

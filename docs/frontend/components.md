@@ -28,7 +28,7 @@ Shared, themeable primitives. All are client components (`'use client'`) because
 </Button>
 ```
 
-- Variants: `primary` (indigo), `secondary` (outline), `ghost`, `danger`, `success`.
+- Variants: `primary` (M3 primary / Deep Plum), `secondary`, `outline`, `ghost`, `destructive`, `success`.
 - Sizes: `sm`, `md`, `lg`.
 - Props: `isLoading` (shows spinner, disables), `asChild` (renders as `next/link` when needed).
 
@@ -52,7 +52,7 @@ A dialog with backdrop, escape-to-close, focus trap, and scroll lock. Uses a por
   <Modal.Body>Apakah Anda yakin ingin menghapus tamu ini?</Modal.Body>
   <Modal.Footer>
     <Button variant="secondary">Batal</Button>
-    <Button variant="danger">Hapus</Button>
+    <Button variant="destructive">Hapus</Button>
   </Modal.Footer>
 </Modal>
 ```
