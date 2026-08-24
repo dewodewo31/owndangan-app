@@ -186,3 +186,82 @@ export type GuestbookMessage = {
   message: string
   created_at: string
 }
+
+export type AdminUser = {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  role: string
+  status: string
+  avatar_url?: string
+  created_at: string
+  updated_at: string
+  subscriptions?: { status: string }[]
+}
+
+export type AdminTransaction = {
+  id: string
+  user_id: string
+  package_id: string
+  order_id: string
+  gross_amount: number
+  status: string
+  payment_type?: string
+  transaction_time?: string
+  settlement_time?: string
+  created_at: string
+  updated_at: string
+  user?: { id: string; name: string; email: string }
+  package?: { id: string; name: string; code: string }
+}
+
+export type AdminPackage = {
+  id: string
+  name: string
+  code: string
+  price: number
+  duration_days?: number
+  guest_limit?: number
+  template_group: string
+  features?: Record<string, unknown>
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export type AdminTemplate = {
+  id: string
+  name: string
+  group_name: string
+  thumbnail_url?: string
+  css_config?: Record<string, unknown>
+  layout_config?: Record<string, unknown>
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export type AdminAnalytics = {
+  total_users: number
+  active_users: number
+  total_transactions: number
+  total_revenue: number
+  settlement_count: number
+  active_packages: number
+  active_templates: number
+  period_start: string
+  period_end: string
+  // Fields added concurrently by the backend admin agent — treat as optional.
+  active_subscriptions?: number
+  total_invitations?: number
+  recent_transactions?: AdminTransaction[]
+  recent_users?: AdminUser[]
+}
+
+export type PaginationMeta = {
+  page: number
+  per_page: number
+  total: number
+  total_pages: number
+}
