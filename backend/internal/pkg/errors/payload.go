@@ -7,8 +7,8 @@ type ErrorDetail struct {
 }
 
 type ErrorPayload struct {
-	Success bool         `json:"success"`
-	Error   ErrorDetail  `json:"error"`
+	Success bool        `json:"success"`
+	Error   ErrorDetail `json:"error"`
 }
 
 type Meta struct {
@@ -18,9 +18,9 @@ type Meta struct {
 }
 
 type PaginationMeta struct {
-	Page      int `json:"page"`
-	PerPage   int `json:"per_page"`
-	Total     int `json:"total"`
+	Page       int `json:"page"`
+	PerPage    int `json:"per_page"`
+	Total      int `json:"total"`
 	TotalPages int `json:"total_pages"`
 }
 

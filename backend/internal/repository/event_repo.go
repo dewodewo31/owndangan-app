@@ -15,6 +15,7 @@ type EventRepository interface {
 	ListByUser(ctx context.Context, userID uuid.UUID, page, perPage int, status string) ([]model.Event, int64, error)
 	Update(ctx context.Context, event *model.Event) error
 	SoftDelete(ctx context.Context, id uuid.UUID) error
+	Count(ctx context.Context) (int64, error)
 	CountByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	IncrementViewCount(ctx context.Context, slug string) error
 	WithTx(tx *gorm.DB) EventRepository
@@ -86,6 +87,12 @@ func (r *eventRepo) Update(ctx context.Context, event *model.Event) error {
 
 func (r *eventRepo) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&model.Event{}, id).Error
+}
+
+func (r *eventRepo) Count(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.Event{}).Where("deleted_at IS NULL").Count(&count).Error
+	return count, err
 }
 
 func (r *eventRepo) CountByUser(ctx context.Context, userID uuid.UUID) (int64, error) {

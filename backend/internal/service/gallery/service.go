@@ -2,8 +2,8 @@ package gallery
 
 import (
 	"context"
-	"io"
 	"fmt"
+	"io"
 
 	"github.com/google/uuid"
 	"github.com/owndangan/backend/internal/model"

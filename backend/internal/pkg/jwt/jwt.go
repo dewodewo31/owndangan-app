@@ -10,8 +10,8 @@ import (
 )
 
 type Service struct {
-	secret            []byte
-	accessTokenExpiry time.Duration
+	secret             []byte
+	accessTokenExpiry  time.Duration
 	refreshTokenExpiry time.Duration
 }
 
@@ -29,7 +29,7 @@ type TokenPair struct {
 
 func New(secret string, accessTokenExpiry, refreshTokenExpiry time.Duration) *Service {
 	return &Service{
-		secret:            []byte(secret),
+		secret:             []byte(secret),
 		accessTokenExpiry:  accessTokenExpiry,
 		refreshTokenExpiry: refreshTokenExpiry,
 	}

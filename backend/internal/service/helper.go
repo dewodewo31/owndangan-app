@@ -16,4 +16,3 @@ func datatypesJSON(data map[string]interface{}) datatypes.JSON {
 	}
 	return bytes
 }
-

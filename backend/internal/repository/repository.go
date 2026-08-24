@@ -17,7 +17,7 @@ type UserRepository interface {
 	Count(ctx context.Context) (int64, error)
 	CountByStatus(ctx context.Context, status string) (int64, error)
 	CountByRole(ctx context.Context, role string) (int64, error)
-	List(ctx context.Context, page, perPage int) ([]model.User, int64, error)
+	List(ctx context.Context, page, perPage int, search, status string) ([]model.User, int64, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
 	WithTx(tx *gorm.DB) UserRepository
 }
@@ -78,10 +78,17 @@ func (r *userRepo) CountByStatus(ctx context.Context, status string) (int64, err
 	return count, err
 }
 
-func (r *userRepo) List(ctx context.Context, page, perPage int) ([]model.User, int64, error) {
+func (r *userRepo) List(ctx context.Context, page, perPage int, search, status string) ([]model.User, int64, error) {
 	var users []model.User
 	var total int64
 	query := r.db.WithContext(ctx).Model(&model.User{}).Where("deleted_at IS NULL")
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if search != "" {
+		like := "%" + search + "%"
+		query = query.Where("name ILIKE ? OR email ILIKE ?", like, like)
+	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -207,5 +214,3 @@ func (r *packageRepo) Update(ctx context.Context, pkg *model.Package) error {
 func (r *packageRepo) Deactivate(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Model(&model.Package{}).Where("id = ?", id).Update("is_active", false).Error
 }
-
-

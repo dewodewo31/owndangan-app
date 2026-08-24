@@ -78,8 +78,8 @@ func FromError(w http.ResponseWriter, err error, r *http.Request) {
 }
 
 type errorResponse struct {
-	Success bool                 `json:"success"`
-	Error   apperrors.ErrorDetail `json:"error"`
+	Success bool                   `json:"success"`
+	Error   apperrors.ErrorDetail  `json:"error"`
 	Meta    map[string]interface{} `json:"meta"`
 }
 

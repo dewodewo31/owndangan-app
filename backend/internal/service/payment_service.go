@@ -39,14 +39,14 @@ func NewPaymentService(txnRepo repository.TransactionRepository, pkgRepo reposit
 	idempotencyRepo repository.WebhookIdempotencyRepository,
 	cfg config.MidtransConfig, subService *SubscriptionService, emailSvc EmailSender) *PaymentService {
 	return &PaymentService{
-		txnRepo:           txnRepo,
-		pkgRepo:           pkgRepo,
-		userRepo:          userRepo,
-		auditRepo:         auditRepo,
-		idempotencyRepo:   idempotencyRepo,
-		midtransKey:       cfg.ServerKey,
-		subService:        subService,
-		emailSvc:          emailSvc,
+		txnRepo:         txnRepo,
+		pkgRepo:         pkgRepo,
+		userRepo:        userRepo,
+		auditRepo:       auditRepo,
+		idempotencyRepo: idempotencyRepo,
+		midtransKey:     cfg.ServerKey,
+		subService:      subService,
+		emailSvc:        emailSvc,
 	}
 }
 
@@ -200,7 +200,7 @@ func (s *PaymentService) verifySignature(payload dto.MidtransWebhookPayload) boo
 }
 
 func (s *PaymentService) ListAllTransactions(ctx context.Context, page, perPage int, status string) ([]dto.TransactionResponse, int64, error) {
-	txns, total, err := s.txnRepo.ListAll(ctx, page, perPage, status)
+	txns, total, err := s.txnRepo.ListAll(ctx, page, perPage, status, "")
 	if err != nil {
 		return nil, 0, err
 	}

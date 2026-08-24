@@ -73,7 +73,7 @@ func (m *mockUserRepo) CountByRole(ctx context.Context, role string) (int64, err
 	return 0, nil
 }
 
-func (m *mockUserRepo) List(ctx context.Context, page, perPage int) ([]model.User, int64, error) {
+func (m *mockUserRepo) List(ctx context.Context, page, perPage int, search, status string) ([]model.User, int64, error) {
 	return nil, 0, nil
 }
 
@@ -204,6 +204,10 @@ func (m *mockSubscriptionRepo) Update(ctx context.Context, sub *model.Subscripti
 	return nil
 }
 
+func (m *mockSubscriptionRepo) CountActive(ctx context.Context) (int64, error) {
+	return 0, nil
+}
+
 func (m *mockSubscriptionRepo) CountExpired(ctx context.Context) (int64, error) {
 	return 0, nil
 }
@@ -278,12 +282,16 @@ func (m *mockTransactionRepo) ListByUserID(ctx context.Context, userID uuid.UUID
 	return result, int64(len(result)), nil
 }
 
-func (m *mockTransactionRepo) ListAll(ctx context.Context, page, perPage int, status string) ([]model.Transaction, int64, error) {
+func (m *mockTransactionRepo) ListAll(ctx context.Context, page, perPage int, status, packageID string) ([]model.Transaction, int64, error) {
 	var result []model.Transaction
 	for _, t := range m.txns {
-		if status == "" || t.Status == status {
-			result = append(result, *t)
+		if status != "" && t.Status != status {
+			continue
 		}
+		if packageID != "" && t.PackageID.String() != packageID {
+			continue
+		}
+		result = append(result, *t)
 	}
 	return result, int64(len(result)), nil
 }
@@ -306,5 +314,3 @@ func (m *mockWebhookIdempotencyRepo) MarkProcessed(ctx context.Context, requestI
 	m.processed[requestID] = true
 	return nil
 }
-
-

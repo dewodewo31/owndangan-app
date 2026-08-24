@@ -93,22 +93,22 @@ type PublicEventResponse struct {
 
 type PublicEventDetail struct {
 	ID               uuid.UUID `json:"id"`
-	Title            string `json:"title"`
-	CoupleName       string `json:"couple_name,omitempty"`
-	GroomName        string `json:"groom_name,omitempty"`
-	BrideName        string `json:"bride_name,omitempty"`
-	GroomParents     string `json:"groom_parents,omitempty"`
-	BrideParents     string `json:"bride_parents,omitempty"`
-	WeddingDate      string `json:"wedding_date,omitempty"`
-	WeddingTime      string `json:"wedding_time,omitempty"`
-	CeremonyVenue    string `json:"ceremony_venue,omitempty"`
-	CeremonyAddress  string `json:"ceremony_address,omitempty"`
-	CeremonyMapURL   string `json:"ceremony_map_url,omitempty"`
-	ReceptionVenue   string `json:"reception_venue,omitempty"`
-	ReceptionAddress string `json:"reception_address,omitempty"`
-	ReceptionMapURL  string `json:"reception_map_url,omitempty"`
-	VideoURL         string `json:"video_url,omitempty"`
-	ViewCount        int64  `json:"view_count"`
+	Title            string    `json:"title"`
+	CoupleName       string    `json:"couple_name,omitempty"`
+	GroomName        string    `json:"groom_name,omitempty"`
+	BrideName        string    `json:"bride_name,omitempty"`
+	GroomParents     string    `json:"groom_parents,omitempty"`
+	BrideParents     string    `json:"bride_parents,omitempty"`
+	WeddingDate      string    `json:"wedding_date,omitempty"`
+	WeddingTime      string    `json:"wedding_time,omitempty"`
+	CeremonyVenue    string    `json:"ceremony_venue,omitempty"`
+	CeremonyAddress  string    `json:"ceremony_address,omitempty"`
+	CeremonyMapURL   string    `json:"ceremony_map_url,omitempty"`
+	ReceptionVenue   string    `json:"reception_venue,omitempty"`
+	ReceptionAddress string    `json:"reception_address,omitempty"`
+	ReceptionMapURL  string    `json:"reception_map_url,omitempty"`
+	VideoURL         string    `json:"video_url,omitempty"`
+	ViewCount        int64     `json:"view_count"`
 }
 
 type TemplatePreview struct {

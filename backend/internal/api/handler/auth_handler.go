@@ -130,7 +130,7 @@ func (h *AuthHandler) RefreshWithAuth(w http.ResponseWriter, r *http.Request) {
 		response.FromError(w, err, r)
 		return
 	}
- 	response.JSON(w, http.StatusOK, dto.TokenResponse{
+	response.JSON(w, http.StatusOK, dto.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    expiresIn,

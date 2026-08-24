@@ -101,26 +101,26 @@ func TestPayment_Webhook_SignatureVerification(t *testing.T) {
 	svc, _, _ := setupPaymentService(t)
 
 	validPayload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-20260101-abc-0001",
-		TransactionID:    "txn-001",
+		OrderID:           "INV-20260101-abc-0001",
+		TransactionID:     "txn-001",
 		TransactionStatus: "settlement",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-20260101-abc-0001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-20260101-abc-0001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(context.Background(), validPayload)
 	require.NoError(t, err)
 
 	invalidPayload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-20260101-abc-0001",
-		TransactionID:    "txn-002",
+		OrderID:           "INV-20260101-abc-0001",
+		TransactionID:     "txn-002",
 		TransactionStatus: "settlement",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     "invalid_signature",
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      "invalid_signature",
 	}
 
 	err = svc.HandleWebhook(context.Background(), invalidPayload)
@@ -141,13 +141,13 @@ func TestPayment_Webhook_DuplicateProtection(t *testing.T) {
 	txnRepo.Create(ctx, txn)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-DUPLICATE-001",
-		TransactionID:    "txn-dup-001",
+		OrderID:           "INV-DUPLICATE-001",
+		TransactionID:     "txn-dup-001",
 		TransactionStatus: "settlement",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-DUPLICATE-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-DUPLICATE-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, payload)
@@ -162,13 +162,13 @@ func TestPayment_Webhook_UnknownOrder(t *testing.T) {
 	ctx := context.Background()
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-UNKNOWN-001",
-		TransactionID:    "txn-unknown-001",
+		OrderID:           "INV-UNKNOWN-001",
+		TransactionID:     "txn-unknown-001",
 		TransactionStatus: "settlement",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-UNKNOWN-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-UNKNOWN-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, payload)
@@ -187,13 +187,13 @@ func TestPayment_Webhook_PendingDoesNotActivate(t *testing.T) {
 	txnRepo.Create(ctx, txn)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-PENDING-001",
-		TransactionID:    "txn-pending-001",
+		OrderID:           "INV-PENDING-001",
+		TransactionID:     "txn-pending-001",
 		TransactionStatus: "pending",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-PENDING-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-PENDING-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, payload)
@@ -215,13 +215,13 @@ func TestPayment_Webhook_ExpireHandled(t *testing.T) {
 	txnRepo.Create(ctx, txn)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-EXPIRE-001",
-		TransactionID:    "txn-expire-001",
+		OrderID:           "INV-EXPIRE-001",
+		TransactionID:     "txn-expire-001",
 		TransactionStatus: "expire",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-EXPIRE-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-EXPIRE-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, payload)
@@ -243,13 +243,13 @@ func TestPayment_Webhook_CancelHandled(t *testing.T) {
 	txnRepo.Create(ctx, txn)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-CANCEL-001",
-		TransactionID:    "txn-cancel-001",
+		OrderID:           "INV-CANCEL-001",
+		TransactionID:     "txn-cancel-001",
 		TransactionStatus: "cancel",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-CANCEL-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-CANCEL-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, payload)
@@ -271,13 +271,13 @@ func TestPayment_Webhook_DenyHandled(t *testing.T) {
 	txnRepo.Create(ctx, txn)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-DENY-001",
-		TransactionID:    "txn-deny-001",
+		OrderID:           "INV-DENY-001",
+		TransactionID:     "txn-deny-001",
 		TransactionStatus: "deny",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-DENY-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-DENY-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, payload)
@@ -299,13 +299,13 @@ func TestPayment_Webhook_RefundHandled(t *testing.T) {
 	txnRepo.Create(ctx, txn)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-REFUND-001",
-		TransactionID:    "txn-refund-001",
+		OrderID:           "INV-REFUND-001",
+		TransactionID:     "txn-refund-001",
 		TransactionStatus: "refund",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-REFUND-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-REFUND-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, payload)
@@ -329,13 +329,13 @@ func TestPayment_TransactionStateConsistency(t *testing.T) {
 	txnRepo.Create(ctx, txn)
 
 	settlementPayload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-STATE-001",
-		TransactionID:    "txn-state-001",
+		OrderID:           "INV-STATE-001",
+		TransactionID:     "txn-state-001",
 		TransactionStatus: "settlement",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-STATE-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-STATE-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, settlementPayload)
@@ -345,13 +345,13 @@ func TestPayment_TransactionStateConsistency(t *testing.T) {
 	require.Equal(t, "settlement", updatedTxn.Status)
 
 	refundPayload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-STATE-001",
-		TransactionID:    "txn-state-002",
+		OrderID:           "INV-STATE-001",
+		TransactionID:     "txn-state-002",
 		TransactionStatus: "refund",
-		StatusCode:       "201",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-STATE-001", "201", "99000"),
+		StatusCode:        "201",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-STATE-001", "201", "99000"),
 	}
 
 	err = svc.HandleWebhook(ctx, refundPayload)
@@ -375,15 +375,15 @@ func TestPayment_Webhook_TimeFields(t *testing.T) {
 	txnRepo.Create(ctx, txn)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-TIME-001",
-		TransactionID:    "txn-time-001",
+		OrderID:           "INV-TIME-001",
+		TransactionID:     "txn-time-001",
 		TransactionStatus: "settlement",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		TransactionTime:  "2026-01-15 10:30:00",
-		SettlementTime:   "2026-01-15 10:31:00",
-		SignatureKey:     generateSignature("INV-TIME-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		TransactionTime:   "2026-01-15 10:30:00",
+		SettlementTime:    "2026-01-15 10:31:00",
+		SignatureKey:      generateSignature("INV-TIME-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, payload)
@@ -411,13 +411,13 @@ func TestPayment_SignatureVerification_Direct(t *testing.T) {
 	signature := generateSignature(orderID, statusCode, grossAmount)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          orderID,
-		TransactionID:    "txn-sig-001",
+		OrderID:           orderID,
+		TransactionID:     "txn-sig-001",
 		TransactionStatus: "settlement",
-		StatusCode:       statusCode,
-		GrossAmount:      grossAmount,
-		PaymentType:      "credit_card",
-		SignatureKey:     signature,
+		StatusCode:        statusCode,
+		GrossAmount:       grossAmount,
+		PaymentType:       "credit_card",
+		SignatureKey:      signature,
 	}
 
 	err := svc.HandleWebhook(context.Background(), payload)
@@ -432,13 +432,13 @@ func TestPayment_EmptyOrderID(t *testing.T) {
 	svc, _, _ := setupPaymentService(t)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "",
-		TransactionID:    "txn-empty-001",
+		OrderID:           "",
+		TransactionID:     "txn-empty-001",
 		TransactionStatus: "settlement",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     "any_signature",
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      "any_signature",
 	}
 
 	err := svc.HandleWebhook(context.Background(), payload)
@@ -476,13 +476,13 @@ func TestPayment_Webhook_AlreadySettledIdempotent(t *testing.T) {
 	txnRepo.Create(ctx, txn)
 
 	payload := dto.MidtransWebhookPayload{
-		OrderID:          "INV-IDEMPOTENT-001",
-		TransactionID:    "txn-idempotent-001",
+		OrderID:           "INV-IDEMPOTENT-001",
+		TransactionID:     "txn-idempotent-001",
 		TransactionStatus: "settlement",
-		StatusCode:       "200",
-		GrossAmount:      "99000",
-		PaymentType:      "credit_card",
-		SignatureKey:     generateSignature("INV-IDEMPOTENT-001", "200", "99000"),
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-IDEMPOTENT-001", "200", "99000"),
 	}
 
 	err := svc.HandleWebhook(ctx, payload)
@@ -491,4 +491,3 @@ func TestPayment_Webhook_AlreadySettledIdempotent(t *testing.T) {
 	updatedTxn, _ := txnRepo.GetByOrderID(ctx, "INV-IDEMPOTENT-001")
 	require.Equal(t, "settlement", updatedTxn.Status)
 }
-

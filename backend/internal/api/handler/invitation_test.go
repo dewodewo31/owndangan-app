@@ -27,12 +27,12 @@ func TestInvitation_Create(t *testing.T) {
 	token := loginData["data"].(map[string]interface{})["access_token"].(string)
 
 	w := doAuthRequest(t, http.MethodPost, "/api/v1/events", map[string]string{
-		"title":        "Wedding Andi dan Siti",
-		"couple_name":  "Andi & Siti",
-		"groom_name":   "Andi Pratama",
-		"bride_name":   "Siti Rahayu",
-		"wedding_date": "2026-08-15",
-		"wedding_time": "10:00",
+		"title":          "Wedding Andi dan Siti",
+		"couple_name":    "Andi & Siti",
+		"groom_name":     "Andi Pratama",
+		"bride_name":     "Siti Rahayu",
+		"wedding_date":   "2026-08-15",
+		"wedding_time":   "10:00",
 		"ceremony_venue": "Gedung Pernikahan",
 	}, token)
 	require.Equal(t, http.StatusCreated, w.Code)
@@ -84,7 +84,7 @@ func TestInvitation_Create_ReservedSlug(t *testing.T) {
 		"name":     "Test User",
 		"email":    "reserved_slug@example.com",
 		"password": "securepassword123",
-		}, "")
+	}, "")
 
 	loginResp := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email":    "reserved_slug@example.com",
@@ -115,7 +115,7 @@ func TestInvitation_GetByID(t *testing.T) {
 		"name":     "Test User",
 		"email":    "get_by_id@example.com",
 		"password": "securepassword123",
-		}, "")
+	}, "")
 
 	loginResp := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email":    "get_by_id@example.com",
@@ -149,7 +149,7 @@ func TestInvitation_Update(t *testing.T) {
 		"name":     "Test User",
 		"email":    "update_test@example.com",
 		"password": "securepassword123",
-		}, "")
+	}, "")
 
 	loginResp := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email":    "update_test@example.com",
@@ -188,7 +188,7 @@ func TestInvitation_Delete(t *testing.T) {
 		"name":     "Test User",
 		"email":    "delete_test@example.com",
 		"password": "securepassword123",
-		}, "")
+	}, "")
 
 	loginResp := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email":    "delete_test@example.com",
@@ -221,7 +221,7 @@ func TestInvitation_Publish(t *testing.T) {
 		"name":     "Test User",
 		"email":    "publish_test@example.com",
 		"password": "securepassword123",
-		}, "")
+	}, "")
 
 	loginResp := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email":    "publish_test@example.com",
@@ -260,7 +260,7 @@ func TestInvitation_Unpublish(t *testing.T) {
 		"name":     "Test User",
 		"email":    "unpublish_test@example.com",
 		"password": "securepassword123",
-		}, "")
+	}, "")
 
 	loginResp := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email":    "unpublish_test@example.com",
@@ -353,7 +353,7 @@ func TestInvitation_List(t *testing.T) {
 		"name":     "Test User",
 		"email":    "list_test@example.com",
 		"password": "securepassword123",
-		}, "")
+	}, "")
 
 	loginResp := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email":    "list_test@example.com",
@@ -386,7 +386,7 @@ func TestInvitation_Publish_Validation(t *testing.T) {
 		"name":     "Test User",
 		"email":    "pub_validation@example.com",
 		"password": "securepassword123",
-		}, "")
+	}, "")
 
 	loginResp := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email":    "pub_validation@example.com",
@@ -414,7 +414,7 @@ func TestInvitation_SlugUniqueness(t *testing.T) {
 		"name":     "Test User",
 		"email":    "slug_unique@example.com",
 		"password": "securepassword123",
-		}, "")
+	}, "")
 
 	loginResp := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email":    "slug_unique@example.com",

@@ -15,10 +15,10 @@ import (
 )
 
 type UserService struct {
-	userRepo   repository.UserRepository
-	subRepo    repository.SubscriptionRepository
-	pkgRepo    repository.PackageRepository
-	auditRepo  repository.AuditLogRepository
+	userRepo  repository.UserRepository
+	subRepo   repository.SubscriptionRepository
+	pkgRepo   repository.PackageRepository
+	auditRepo repository.AuditLogRepository
 }
 
 func NewUserService(userRepo repository.UserRepository, subRepo repository.SubscriptionRepository, pkgRepo repository.PackageRepository, auditRepo repository.AuditLogRepository) *UserService {
@@ -76,10 +76,10 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req d
 	}
 
 	_ = s.auditRepo.Create(ctx, &model.AuditLog{
-		UserID:    &user.ID,
-		Action:    "user.profile_updated",
+		UserID:     &user.ID,
+		Action:     "user.profile_updated",
 		EntityType: "user",
-		EntityID:  &user.ID,
+		EntityID:   &user.ID,
 	})
 
 	return toUserResponse(user), nil

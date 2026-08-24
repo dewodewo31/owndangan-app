@@ -70,10 +70,15 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 	authRequired := middleware.Authenticate(jwtSvc)
 	adminRequired := middleware.RequireRole("admin")
 
+	emailSender := deps.EmailSender
+	if emailSender == nil {
+		emailSender = email.NewService(cfg.SMTP, log)
+	}
+
 	healthHandler := handler.NewHealthHandler()
 
 	authSvc := service.NewAuthService(
-		deps.UserRepo, deps.RefreshTokenRepo, deps.PackageRepo, deps.SubscriptionRepo, jwtSvc, deps.AuditLogRepo,
+		deps.UserRepo, deps.RefreshTokenRepo, deps.PackageRepo, deps.SubscriptionRepo, jwtSvc, deps.AuditLogRepo, emailSender, cfg.FrontendURL,
 	)
 	authHandler := handler.NewAuthHandler(authSvc)
 
@@ -86,10 +91,6 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 	subSvc := service.NewSubscriptionService(deps.SubscriptionRepo, deps.PackageRepo, deps.TransactionRepo, deps.UserRepo, deps.AuditLogRepo)
 	subHandler := handler.NewSubscriptionHandler(subSvc)
 
-	emailSender := deps.EmailSender
-	if emailSender == nil {
-		emailSender = email.NewService(cfg.SMTP, log)
-	}
 	paySvc := service.NewPaymentService(
 		deps.TransactionRepo, deps.PackageRepo, deps.UserRepo, deps.AuditLogRepo,
 		deps.WebhookIdempotencyRepo, cfg.Midtrans, subSvc, emailSender,
@@ -115,17 +116,17 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 	guestHandler := handler.NewGuestHandler(guestSvc)
 
 	rsvpSvc := rsvp.NewService(
-		deps.RSVPRepo, deps.GuestRepo, deps.EventRepo, deps.AuditLogRepo,
+		deps.RSVPRepo, deps.GuestRepo, deps.EventRepo, deps.UserRepo, deps.AuditLogRepo, emailSender,
 	)
 	rsvpHandler := handler.NewRSVPHandler(rsvpSvc)
 
 	guestbookSvc := guestbook.NewService(
-		deps.GuestbookRepo, deps.EventRepo, deps.AuditLogRepo,
+		deps.GuestbookRepo, deps.EventRepo, deps.UserRepo, deps.AuditLogRepo, emailSender,
 	)
 	guestbookHandler := handler.NewGuestbookHandler(guestbookSvc)
 
 	adminSvc := admin.NewService(
-		deps.UserRepo, deps.PackageRepo, deps.TransactionRepo, deps.TemplateRepo, deps.AuditLogRepo,
+		deps.UserRepo, deps.PackageRepo, deps.TransactionRepo, deps.TemplateRepo, deps.SubscriptionRepo, deps.EventRepo, deps.AuditLogRepo,
 	)
 	adminHandler := adminHandler.NewHandler(adminSvc)
 

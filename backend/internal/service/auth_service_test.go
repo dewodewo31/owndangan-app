@@ -39,6 +39,8 @@ func setupAuthService(t *testing.T) (*service.AuthService, *mockPackageRepo) {
 		&mockSubscriptionRepo{},
 		jwt.New("test-secret-key", 15*time.Minute, 7*24*time.Hour),
 		&mockAuditLogRepo{},
+		noopEmailSender{},
+		"http://localhost:3000",
 	)
 	return authSvc, pkgRepo
 }

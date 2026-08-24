@@ -27,11 +27,11 @@ type EventAnalytics struct {
 }
 
 type AnalyticsService struct {
-	eventRepo    repository.EventRepository
+	eventRepo     repository.EventRepository
 	analyticsRepo repository.AnalyticsEventRepository
-	rsvpRepo     repository.RSVPRepository
-	subRepo      repository.SubscriptionRepository
-	pkgRepo      repository.PackageRepository
+	rsvpRepo      repository.RSVPRepository
+	subRepo       repository.SubscriptionRepository
+	pkgRepo       repository.PackageRepository
 }
 
 func NewAnalyticsService(eventRepo repository.EventRepository, analyticsRepo repository.AnalyticsEventRepository,

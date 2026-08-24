@@ -14,20 +14,20 @@ import (
 )
 
 type SubscriptionService struct {
-	subRepo     repository.SubscriptionRepository
-	pkgRepo     repository.PackageRepository
-	txnRepo     repository.TransactionRepository
-	userRepo    repository.UserRepository
-	auditRepo   repository.AuditLogRepository
+	subRepo   repository.SubscriptionRepository
+	pkgRepo   repository.PackageRepository
+	txnRepo   repository.TransactionRepository
+	userRepo  repository.UserRepository
+	auditRepo repository.AuditLogRepository
 }
 
 func NewSubscriptionService(subRepo repository.SubscriptionRepository, pkgRepo repository.PackageRepository, txnRepo repository.TransactionRepository, userRepo repository.UserRepository, auditRepo repository.AuditLogRepository) *SubscriptionService {
 	return &SubscriptionService{
-		subRepo:     subRepo,
-		pkgRepo:     pkgRepo,
-		txnRepo:     txnRepo,
-		userRepo:    userRepo,
-		auditRepo:   auditRepo,
+		subRepo:   subRepo,
+		pkgRepo:   pkgRepo,
+		txnRepo:   txnRepo,
+		userRepo:  userRepo,
+		auditRepo: auditRepo,
 	}
 }
 
@@ -51,10 +51,10 @@ func (s *SubscriptionService) GetUserSubscriptionOrDefault(ctx context.Context, 
 			return nil, errors.ErrNotFound
 		}
 		return &dto.SubscriptionResponse{
-			ID:        uuid.New(),
-			Package:   toPackageBrief(freePkg),
-			Status:    "active",
-			StartAt:   time.Now(),
+			ID:      uuid.New(),
+			Package: toPackageBrief(freePkg),
+			Status:  "active",
+			StartAt: time.Now(),
 			ExpiresAt: func() *time.Time {
 				t := time.Now().Add(7 * 24 * time.Hour)
 				return &t
@@ -99,11 +99,11 @@ func (s *SubscriptionService) ActivateOnSettlement(ctx context.Context, transact
 	}
 
 	_ = s.auditRepo.Create(ctx, &model.AuditLog{
-		UserID:      &txn.UserID,
-		Action:      "subscription.activated",
-		EntityType:  "subscription",
-		EntityID:    &newSub.ID,
-		Metadata:    datatypesJSON(map[string]interface{}{"transaction_id": txn.ID, "package_id": txn.PackageID}),
+		UserID:     &txn.UserID,
+		Action:     "subscription.activated",
+		EntityType: "subscription",
+		EntityID:   &newSub.ID,
+		Metadata:   datatypesJSON(map[string]interface{}{"transaction_id": txn.ID, "package_id": txn.PackageID}),
 	})
 
 	return newSub, nil

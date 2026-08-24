@@ -41,7 +41,7 @@ func NewExpiryWorker(subs repository.SubscriptionRepository, users repository.Us
 }
 
 const (
-	actionExpiryReminder = "email.expiry_reminder"
+	actionExpiryReminder  = "email.expiry_reminder"
 	subjectExpiryReminder = "Langganan Owndangan akan berakhir"
 	subjectExpired        = "Langganan Owndangan telah berakhir"
 )

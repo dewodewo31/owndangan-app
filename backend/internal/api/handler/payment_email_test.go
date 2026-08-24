@@ -36,6 +36,12 @@ func (r *recEmailSender) count() int {
 	return len(r.emails)
 }
 
+func (r *recEmailSender) reset() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.emails = nil
+}
+
 func midtransSignature(orderID, statusCode, grossAmount, key string) string {
 	h := sha512.Sum512([]byte(orderID + statusCode + grossAmount + key))
 	return hex.EncodeToString(h[:])
@@ -102,6 +108,7 @@ func TestPaymentWebhook_Settlement_SendsEmailOnce(t *testing.T) {
 	setupAuthTestServer(t)
 
 	token, payerEmail := registerPayer(t)
+	rec.reset() // ignore the welcome email sent on registration
 	orderID := createSnapOrder(t, token, starterPackageID(t))
 
 	sendWebhook(t, orderID, "TXN-SETTLE-1", "settlement", "99000.00")
@@ -124,6 +131,7 @@ func TestPaymentWebhook_Deny_NoEmail(t *testing.T) {
 	setupAuthTestServer(t)
 
 	token, _ := registerPayer(t)
+	rec.reset() // ignore the welcome email sent on registration
 	orderID := createSnapOrder(t, token, starterPackageID(t))
 
 	sendWebhook(t, orderID, "TXN-DENY-1", "deny", "99000.00")

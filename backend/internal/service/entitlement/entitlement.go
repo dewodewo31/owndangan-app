@@ -9,20 +9,20 @@ import (
 type Feature string
 
 const (
-	GuestMax          Feature = "guest.max"
-	GalleryMax        Feature = "gallery.max"
-	VideoEnabled      Feature = "video.enabled"
-	MusicUpload       Feature = "music.upload"
-	MusicPreset       Feature = "music.preset"
-	CustomDomain      Feature = "custom_domain"
-	WatermarkRemoved  Feature = "watermark.removed"
-	WhatsappBulk      Feature = "whatsapp.bulk"
-	GuestbookQR       Feature = "guestbook.qr"
-	RSVPExport        Feature = "rsvp.export"
-	DigitalGiftQRIS   Feature = "digital_gift.qris"
-	TemplateCustom    Feature = "template.custom_request"
-	EventMax          Feature = "event.max"
-	AnalyticsEnabled  Feature = "analytics.enabled"
+	GuestMax         Feature = "guest.max"
+	GalleryMax       Feature = "gallery.max"
+	VideoEnabled     Feature = "video.enabled"
+	MusicUpload      Feature = "music.upload"
+	MusicPreset      Feature = "music.preset"
+	CustomDomain     Feature = "custom_domain"
+	WatermarkRemoved Feature = "watermark.removed"
+	WhatsappBulk     Feature = "whatsapp.bulk"
+	GuestbookQR      Feature = "guestbook.qr"
+	RSVPExport       Feature = "rsvp.export"
+	DigitalGiftQRIS  Feature = "digital_gift.qris"
+	TemplateCustom   Feature = "template.custom_request"
+	EventMax         Feature = "event.max"
+	AnalyticsEnabled Feature = "analytics.enabled"
 )
 
 type Resolver struct {

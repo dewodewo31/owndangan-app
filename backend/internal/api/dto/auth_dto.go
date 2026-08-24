@@ -23,14 +23,14 @@ type LogoutRequest struct {
 }
 
 type AuthResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Phone     string    `json:"phone,omitempty"`
-	Role      string    `json:"role"`
-	Status    string    `json:"status"`
-	CreatedAt string    `json:"created_at"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	Email        string    `json:"email"`
+	Phone        string    `json:"phone,omitempty"`
+	Role         string    `json:"role"`
+	Status       string    `json:"status"`
+	CreatedAt    string    `json:"created_at"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresIn    int64     `json:"expires_in"`
 }

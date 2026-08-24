@@ -108,6 +108,23 @@ type ExpiredData struct {
 	RenewURL string
 }
 
+type RSVPData struct {
+	OwnerName   string
+	GuestName   string
+	Invitation  string
+	Attendance  string
+	GuestCount  int
+	SubmittedAt string
+}
+
+type GuestbookData struct {
+	OwnerName   string
+	GuestName   string
+	Message     string
+	Invitation  string
+	SubmittedAt string
+}
+
 var (
 	welcomeTpl = template.Must(template.New("welcome").Parse(
 		`<!DOCTYPE html><html><body style="font-family:Arial,sans-serif">
@@ -136,6 +153,21 @@ var (
 <p>Langganan <strong>{{.PlanName}}</strong> Anda telah berakhir. Beberapa fitur kini terkunci.</p>
 <a href="{{.RenewURL}}">Perpanjang Sekarang</a>
 </body></html>`))
+
+	rsvpTpl = template.Must(template.New("rsvp_notification").Parse(
+		`<!DOCTYPE html><html><body style="font-family:Arial,sans-serif">
+<h1>Halo {{.OwnerName}}!</h1>
+<p><strong>{{.GuestName}}</strong> mengirimkan konfirmasi kehadiran untuk undangan <strong>{{.Invitation}}</strong>.</p>
+<p>Kehadiran: {{.Attendance}}<br/>Jumlah tamu: {{.GuestCount}}<br/>Waktu: {{.SubmittedAt}}</p>
+</body></html>`))
+
+	guestbookTpl = template.Must(template.New("guestbook_notification").Parse(
+		`<!DOCTYPE html><html><body style="font-family:Arial,sans-serif">
+<h1>Halo {{.OwnerName}}!</h1>
+<p><strong>{{.GuestName}}</strong> menulis di buku tamu undangan <strong>{{.Invitation}}</strong>:</p>
+<blockquote>{{.Message}}</blockquote>
+<p>Waktu: {{.SubmittedAt}}</p>
+</body></html>`))
 )
 
 func render(t *template.Template, data any) (string, error) {
@@ -160,4 +192,12 @@ func RenderExpiryReminder(d ExpiryReminderData) (string, error) {
 
 func RenderExpired(d ExpiredData) (string, error) {
 	return render(expiredTpl, d)
+}
+
+func RenderRSVP(d RSVPData) (string, error) {
+	return render(rsvpTpl, d)
+}
+
+func RenderGuestbook(d GuestbookData) (string, error) {
+	return render(guestbookTpl, d)
 }

@@ -12,26 +12,31 @@ import (
 	"github.com/owndangan/backend/internal/pkg/errors"
 	"github.com/owndangan/backend/internal/pkg/jwt"
 	"github.com/owndangan/backend/internal/repository"
+	"github.com/owndangan/backend/internal/service/email"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
-	userRepo      repository.UserRepository
-	refreshRepo   repository.RefreshTokenRepository
-	pkgRepo       repository.PackageRepository
-	subRepo       repository.SubscriptionRepository
-	jwtService    *jwt.Service
-	auditRepo     repository.AuditLogRepository
+	userRepo    repository.UserRepository
+	refreshRepo repository.RefreshTokenRepository
+	pkgRepo     repository.PackageRepository
+	subRepo     repository.SubscriptionRepository
+	jwtService  *jwt.Service
+	auditRepo   repository.AuditLogRepository
+	emailSvc    EmailSender
+	loginURL    string
 }
 
-func NewAuthService(userRepo repository.UserRepository, refreshRepo repository.RefreshTokenRepository, pkgRepo repository.PackageRepository, subRepo repository.SubscriptionRepository, jwtSvc *jwt.Service, auditRepo repository.AuditLogRepository) *AuthService {
+func NewAuthService(userRepo repository.UserRepository, refreshRepo repository.RefreshTokenRepository, pkgRepo repository.PackageRepository, subRepo repository.SubscriptionRepository, jwtSvc *jwt.Service, auditRepo repository.AuditLogRepository, emailSvc EmailSender, loginURL string) *AuthService {
 	return &AuthService{
-		userRepo:     userRepo,
-		refreshRepo:  refreshRepo,
-		pkgRepo:      pkgRepo,
-		subRepo:      subRepo,
-		jwtService:   jwtSvc,
-		auditRepo:    auditRepo,
+		userRepo:    userRepo,
+		refreshRepo: refreshRepo,
+		pkgRepo:     pkgRepo,
+		subRepo:     subRepo,
+		jwtService:  jwtSvc,
+		auditRepo:   auditRepo,
+		emailSvc:    emailSvc,
+		loginURL:    loginURL,
 	}
 }
 
@@ -58,6 +63,8 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, phone
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, "", "", 0, fmt.Errorf("create user: %w", err)
 	}
+
+	s.sendWelcomeEmail(ctx, user)
 
 	freePkg, err := s.pkgRepo.GetByCode(ctx, "free")
 	if err != nil {
@@ -92,20 +99,20 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, phone
 	tokenHash := hashToken(refreshToken)
 	tokenExpiry := time.Now().Add(7 * 24 * time.Hour)
 	rt := &model.RefreshToken{
-		UserID:     user.ID,
-		TokenHash:  tokenHash,
-		ExpiresAt:  tokenExpiry,
+		UserID:    user.ID,
+		TokenHash: tokenHash,
+		ExpiresAt: tokenExpiry,
 	}
 	if err := s.refreshRepo.Create(ctx, rt); err != nil {
 		return nil, "", "", 0, fmt.Errorf("store refresh token: %w", err)
 	}
 
 	_ = s.auditRepo.Create(ctx, &model.AuditLog{
-		UserID:    &user.ID,
-		Action:    "user.registered",
+		UserID:     &user.ID,
+		Action:     "user.registered",
 		EntityType: "user",
-		EntityID:  &user.ID,
-		Metadata:  datatypesJSON(map[string]interface{}{"email": email}),
+		EntityID:   &user.ID,
+		Metadata:   datatypesJSON(map[string]interface{}{"email": email}),
 	})
 
 	return user, accessToken, refreshToken, expiresIn, nil
@@ -149,10 +156,10 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*model
 	_ = s.refreshRepo.DeleteExpired(ctx)
 
 	_ = s.auditRepo.Create(ctx, &model.AuditLog{
-		UserID:    &user.ID,
-		Action:    "user.login",
+		UserID:     &user.ID,
+		Action:     "user.login",
 		EntityType: "user",
-		EntityID:  &user.ID,
+		EntityID:   &user.ID,
 	})
 
 	return user, accessToken, refreshToken, expiresIn, nil
@@ -234,4 +241,15 @@ func (s *AuthService) VerifyPassword(ctx context.Context, userID uuid.UUID, pass
 func hashToken(token string) string {
 	h := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(h[:])
+}
+
+func (s *AuthService) sendWelcomeEmail(ctx context.Context, user *model.User) {
+	if s.emailSvc == nil {
+		return
+	}
+	html, err := email.RenderWelcome(email.WelcomeData{Name: user.Name, LoginURL: s.loginURL})
+	if err != nil {
+		return
+	}
+	s.emailSvc.SendAsync(user.Email, "Selamat datang di Owndangan", html)
 }

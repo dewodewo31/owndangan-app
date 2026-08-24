@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/owndangan/backend/internal/pkg/response"
 	"github.com/go-playground/validator/v10"
+	"github.com/owndangan/backend/internal/pkg/response"
 )
 
 func New() *validator.Validate {
@@ -75,7 +75,7 @@ func FormatValidationError(err error) map[string]string {
 }
 
 var (
-	slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+	slugPattern  = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 	phonePattern = regexp.MustCompile(`^62\d{8,15}$`)
 )
 

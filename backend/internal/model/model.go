@@ -65,8 +65,8 @@ type Subscription struct {
 	UpdatedAt     time.Time      `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 
-	User        User        `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	Package     Package     `gorm:"foreignKey:PackageID" json:"package,omitempty"`
+	User        User         `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Package     Package      `gorm:"foreignKey:PackageID" json:"package,omitempty"`
 	Transaction *Transaction `gorm:"foreignKey:TransactionID" json:"transaction,omitempty"`
 }
 
@@ -90,62 +90,62 @@ type Transaction struct {
 }
 
 type Event struct {
-	ID                uuid.UUID       `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	UserID            uuid.UUID       `gorm:"type:uuid;not null;index" json:"user_id"`
-	TemplateID        *uuid.UUID      `gorm:"type:uuid" json:"template_id,omitempty"`
-	Title             string          `gorm:"type:varchar(255);not null" json:"title"`
-	Slug              string          `gorm:"type:varchar(100);unique;not null" json:"slug"`
-	CoupleName        string          `gorm:"type:varchar(255)" json:"couple_name,omitempty"`
-	GroomName         string          `gorm:"type:varchar(255)" json:"groom_name,omitempty"`
-	BrideName         string          `gorm:"type:varchar(255)" json:"bride_name,omitempty"`
-	GroomParents      string          `gorm:"type:varchar(255)" json:"groom_parents,omitempty"`
-	BrideParents      string          `gorm:"type:varchar(255)" json:"bride_parents,omitempty"`
-	WeddingDate       *time.Time      `gorm:"type:date" json:"wedding_date,omitempty"`
-	WeddingTime       string          `gorm:"type:varchar(20)" json:"wedding_time,omitempty"`
-	CeremonyVenue     string          `gorm:"type:text" json:"ceremony_venue,omitempty"`
-	CeremonyAddress   string          `gorm:"type:text" json:"ceremony_address,omitempty"`
-	CeremonyMapURL    string          `gorm:"type:text" json:"ceremony_map_url,omitempty"`
-	ReceptionVenue    string          `gorm:"type:text" json:"reception_venue,omitempty"`
-	ReceptionAddress  string          `gorm:"type:text" json:"reception_address,omitempty"`
-	ReceptionMapURL   string          `gorm:"type:text" json:"reception_map_url,omitempty"`
-	MusicURL          string          `gorm:"type:varchar(255)" json:"music_url,omitempty"`
-	VideoURL          string          `gorm:"type:text" json:"video_url,omitempty"`
-	Status            string          `gorm:"type:varchar(20);not null;default:'draft'" json:"status"`
-	PublishedAt       *time.Time      `gorm:"type:timestamptz" json:"published_at,omitempty"`
-	ViewCount         int64           `gorm:"not null;default:0" json:"view_count"`
-	CreatedAt         time.Time       `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
-	UpdatedAt         time.Time       `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
-	DeletedAt         gorm.DeletedAt  `gorm:"index" json:"-"`
+	ID               uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID           uuid.UUID      `gorm:"type:uuid;not null;index" json:"user_id"`
+	TemplateID       *uuid.UUID     `gorm:"type:uuid" json:"template_id,omitempty"`
+	Title            string         `gorm:"type:varchar(255);not null" json:"title"`
+	Slug             string         `gorm:"type:varchar(100);unique;not null" json:"slug"`
+	CoupleName       string         `gorm:"type:varchar(255)" json:"couple_name,omitempty"`
+	GroomName        string         `gorm:"type:varchar(255)" json:"groom_name,omitempty"`
+	BrideName        string         `gorm:"type:varchar(255)" json:"bride_name,omitempty"`
+	GroomParents     string         `gorm:"type:varchar(255)" json:"groom_parents,omitempty"`
+	BrideParents     string         `gorm:"type:varchar(255)" json:"bride_parents,omitempty"`
+	WeddingDate      *time.Time     `gorm:"type:date" json:"wedding_date,omitempty"`
+	WeddingTime      string         `gorm:"type:varchar(20)" json:"wedding_time,omitempty"`
+	CeremonyVenue    string         `gorm:"type:text" json:"ceremony_venue,omitempty"`
+	CeremonyAddress  string         `gorm:"type:text" json:"ceremony_address,omitempty"`
+	CeremonyMapURL   string         `gorm:"type:text" json:"ceremony_map_url,omitempty"`
+	ReceptionVenue   string         `gorm:"type:text" json:"reception_venue,omitempty"`
+	ReceptionAddress string         `gorm:"type:text" json:"reception_address,omitempty"`
+	ReceptionMapURL  string         `gorm:"type:text" json:"reception_map_url,omitempty"`
+	MusicURL         string         `gorm:"type:varchar(255)" json:"music_url,omitempty"`
+	VideoURL         string         `gorm:"type:text" json:"video_url,omitempty"`
+	Status           string         `gorm:"type:varchar(20);not null;default:'draft'" json:"status"`
+	PublishedAt      *time.Time     `gorm:"type:timestamptz" json:"published_at,omitempty"`
+	ViewCount        int64          `gorm:"not null;default:0" json:"view_count"`
+	CreatedAt        time.Time      `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
+	UpdatedAt        time.Time      `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Sections    *EventSection     `gorm:"foreignKey:EventID" json:"sections,omitempty"`
-	Guests      []Guest           `gorm:"foreignKey:EventID" json:"guests,omitempty"`
-	GalleryPhotos []GalleryPhoto  `gorm:"foreignKey:EventID" json:"gallery_photos,omitempty"`
-	DigitalGift   *DigitalGift    `gorm:"foreignKey:EventID" json:"digital_gift,omitempty"`
-	LoveStories   []LoveStory     `gorm:"foreignKey:EventID" json:"love_stories,omitempty"`
+	Sections      *EventSection  `gorm:"foreignKey:EventID" json:"sections,omitempty"`
+	Guests        []Guest        `gorm:"foreignKey:EventID" json:"guests,omitempty"`
+	GalleryPhotos []GalleryPhoto `gorm:"foreignKey:EventID" json:"gallery_photos,omitempty"`
+	DigitalGift   *DigitalGift   `gorm:"foreignKey:EventID" json:"digital_gift,omitempty"`
+	LoveStories   []LoveStory    `gorm:"foreignKey:EventID" json:"love_stories,omitempty"`
 }
 
 type EventSection struct {
-	ID                   uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	EventID              uuid.UUID `gorm:"type:uuid;unique;not null" json:"event_id"`
-	HeroEnabled          bool      `gorm:"not null;default:true" json:"hero_enabled"`
-	CoupleEnabled        bool      `gorm:"not null;default:true" json:"couple_enabled"`
-	EventDetailsEnabled  bool      `gorm:"not null;default:true" json:"event_details_enabled"`
-	GalleryEnabled       bool      `gorm:"not null;default:true" json:"gallery_enabled"`
-	VideoEnabled         bool      `gorm:"not null;default:false" json:"video_enabled"`
-	MusicID              *uuid.UUID `gorm:"type:uuid" json:"music_id,omitempty"`
-	RSVPEnabled         bool      `gorm:"not null;default:true" json:"rsvp_enabled"`
-	GuestbookEnabled     bool      `gorm:"not null;default:true" json:"guestbook_enabled"`
-	LoveStoryEnabled     bool      `gorm:"not null;default:false" json:"love_story_enabled"`
-	DigitalGiftsEnabled  bool      `gorm:"not null;default:false" json:"digital_gifts_enabled"`
-	DressCode            string    `gorm:"type:varchar(500);default:''" json:"dress_code,omitempty"`
-	ClosingMessage       string    `gorm:"type:text;default:''" json:"closing_message,omitempty"`
-	OpeningMessage       string    `gorm:"type:text;default:''" json:"opening_message,omitempty"`
-	VerseEnabled         bool      `gorm:"not null;default:false" json:"verse_enabled"`
-	VerseReligion        string    `gorm:"type:varchar(20);default:'quran'" json:"verse_religion"`
-	VerseText            string    `gorm:"type:text;default:''" json:"verse_text,omitempty"`
-	VerseSource          string    `gorm:"type:varchar(255);default:''" json:"verse_source,omitempty"`
-	CreatedAt            time.Time `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
-	UpdatedAt            time.Time `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
+	ID                  uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	EventID             uuid.UUID  `gorm:"type:uuid;unique;not null" json:"event_id"`
+	HeroEnabled         bool       `gorm:"not null;default:true" json:"hero_enabled"`
+	CoupleEnabled       bool       `gorm:"not null;default:true" json:"couple_enabled"`
+	EventDetailsEnabled bool       `gorm:"not null;default:true" json:"event_details_enabled"`
+	GalleryEnabled      bool       `gorm:"not null;default:true" json:"gallery_enabled"`
+	VideoEnabled        bool       `gorm:"not null;default:false" json:"video_enabled"`
+	MusicID             *uuid.UUID `gorm:"type:uuid" json:"music_id,omitempty"`
+	RSVPEnabled         bool       `gorm:"not null;default:true" json:"rsvp_enabled"`
+	GuestbookEnabled    bool       `gorm:"not null;default:true" json:"guestbook_enabled"`
+	LoveStoryEnabled    bool       `gorm:"not null;default:false" json:"love_story_enabled"`
+	DigitalGiftsEnabled bool       `gorm:"not null;default:false" json:"digital_gifts_enabled"`
+	DressCode           string     `gorm:"type:varchar(500);default:''" json:"dress_code,omitempty"`
+	ClosingMessage      string     `gorm:"type:text;default:''" json:"closing_message,omitempty"`
+	OpeningMessage      string     `gorm:"type:text;default:''" json:"opening_message,omitempty"`
+	VerseEnabled        bool       `gorm:"not null;default:false" json:"verse_enabled"`
+	VerseReligion       string     `gorm:"type:varchar(20);default:'quran'" json:"verse_religion"`
+	VerseText           string     `gorm:"type:text;default:''" json:"verse_text,omitempty"`
+	VerseSource         string     `gorm:"type:varchar(255);default:''" json:"verse_source,omitempty"`
+	CreatedAt           time.Time  `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
+	UpdatedAt           time.Time  `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
 }
 
 type Template struct {
@@ -176,14 +176,14 @@ type Guest struct {
 }
 
 type RSVP struct {
-	ID           uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	GuestID      uuid.UUID `gorm:"type:uuid;unique;not null" json:"guest_id"`
-	EventID      uuid.UUID `gorm:"type:uuid;not null;index" json:"event_id"`
-	Attendance   string    `gorm:"type:varchar(20);not null" json:"attendance"`
-	GuestCount   int       `gorm:"not null;default:1" json:"guest_count"`
-	Message      string    `gorm:"type:text" json:"message,omitempty"`
-	SubmittedAt  time.Time `gorm:"type:timestamptz;not null;default:CURRENT_TIMESTAMP" json:"submitted_at"`
-	UpdatedAt    time.Time `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	GuestID     uuid.UUID `gorm:"type:uuid;unique;not null" json:"guest_id"`
+	EventID     uuid.UUID `gorm:"type:uuid;not null;index" json:"event_id"`
+	Attendance  string    `gorm:"type:varchar(20);not null" json:"attendance"`
+	GuestCount  int       `gorm:"not null;default:1" json:"guest_count"`
+	Message     string    `gorm:"type:text" json:"message,omitempty"`
+	SubmittedAt time.Time `gorm:"type:timestamptz;not null;default:CURRENT_TIMESTAMP" json:"submitted_at"`
+	UpdatedAt   time.Time `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
 }
 
 type GuestbookMessage struct {
@@ -197,23 +197,23 @@ type GuestbookMessage struct {
 }
 
 type DigitalGift struct {
-	ID            uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	EventID       uuid.UUID      `gorm:"type:uuid;unique;not null" json:"event_id"`
-	BankAccounts  datatypes.JSON `gorm:"type:jsonb" json:"bank_accounts,omitempty"`
-	EWallet       datatypes.JSON `gorm:"type:jsonb" json:"ewallet,omitempty"`
-	QRISImageURL  string         `gorm:"type:text" json:"qris_image_url,omitempty"`
-	GiftMessage   string         `gorm:"type:text" json:"gift_message,omitempty"`
-	CreatedAt     time.Time      `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
-	UpdatedAt     time.Time      `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
+	ID           uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	EventID      uuid.UUID      `gorm:"type:uuid;unique;not null" json:"event_id"`
+	BankAccounts datatypes.JSON `gorm:"type:jsonb" json:"bank_accounts,omitempty"`
+	EWallet      datatypes.JSON `gorm:"type:jsonb" json:"ewallet,omitempty"`
+	QRISImageURL string         `gorm:"type:text" json:"qris_image_url,omitempty"`
+	GiftMessage  string         `gorm:"type:text" json:"gift_message,omitempty"`
+	CreatedAt    time.Time      `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
+	UpdatedAt    time.Time      `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
 }
 
 type GalleryPhoto struct {
-	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	EventID    uuid.UUID `gorm:"type:uuid;not null;index" json:"event_id"`
-	ImageURL   string    `gorm:"type:text;not null" json:"image_url"`
-	Caption    string    `gorm:"type:varchar(255)" json:"caption,omitempty"`
-	SortOrder  int       `gorm:"not null;default:0" json:"sort_order"`
-	CreatedAt  time.Time `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	EventID   uuid.UUID `gorm:"type:uuid;not null;index" json:"event_id"`
+	ImageURL  string    `gorm:"type:text;not null" json:"image_url"`
+	Caption   string    `gorm:"type:varchar(255)" json:"caption,omitempty"`
+	SortOrder int       `gorm:"not null;default:0" json:"sort_order"`
+	CreatedAt time.Time `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
 }
 
 type LoveStory struct {
@@ -230,13 +230,13 @@ type LoveStory struct {
 }
 
 type Music struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	EventID   *uuid.UUID `gorm:"type:uuid" json:"event_id,omitempty"`
-	Title     string    `gorm:"type:varchar(255);not null" json:"title"`
-	FileURL   string    `gorm:"type:text" json:"file_url,omitempty"`
-	Preset    string    `gorm:"type:varchar(100)" json:"preset,omitempty"`
-	IsPreset  bool      `gorm:"not null;default:false" json:"is_preset"`
-	CreatedAt time.Time `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
+	Title     string     `gorm:"type:varchar(255);not null" json:"title"`
+	FileURL   string     `gorm:"type:text" json:"file_url,omitempty"`
+	Preset    string     `gorm:"type:varchar(100)" json:"preset,omitempty"`
+	IsPreset  bool       `gorm:"not null;default:false" json:"is_preset"`
+	CreatedAt time.Time  `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
 }
 
 type AuditLog struct {
@@ -251,13 +251,13 @@ type AuditLog struct {
 }
 
 type AnalyticsEvent struct {
-	ID          uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	EventID     *uuid.UUID     `gorm:"type:uuid;index" json:"event_id,omitempty"`
-	EventType   string         `gorm:"type:varchar(50);not null" json:"event_type"`
-	Metadata    datatypes.JSON `gorm:"type:jsonb" json:"metadata,omitempty"`
-	IPAddress   string         `gorm:"type:varchar(45)" json:"ip_address,omitempty"`
-	UserAgent   string         `gorm:"type:text" json:"user_agent,omitempty"`
-	CreatedAt   time.Time      `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
+	ID        uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	EventID   *uuid.UUID     `gorm:"type:uuid;index" json:"event_id,omitempty"`
+	EventType string         `gorm:"type:varchar(50);not null" json:"event_type"`
+	Metadata  datatypes.JSON `gorm:"type:jsonb" json:"metadata,omitempty"`
+	IPAddress string         `gorm:"type:varchar(45)" json:"ip_address,omitempty"`
+	UserAgent string         `gorm:"type:text" json:"user_agent,omitempty"`
+	CreatedAt time.Time      `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
 }
 
 type WebhookIdempotency struct {

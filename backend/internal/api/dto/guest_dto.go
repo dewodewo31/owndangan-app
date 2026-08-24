@@ -21,15 +21,15 @@ type UpdateGuestRequest struct {
 }
 
 type GuestResponse struct {
-	ID        uuid.UUID `json:"id"`
-	EventID   uuid.UUID `json:"event_id"`
-	Name      string    `json:"name"`
-	Phone     string    `json:"phone,omitempty"`
-	Category  string    `json:"category"`
-	Note      string    `json:"note,omitempty"`
+	ID        uuid.UUID  `json:"id"`
+	EventID   uuid.UUID  `json:"event_id"`
+	Name      string     `json:"name"`
+	Phone     string     `json:"phone,omitempty"`
+	Category  string     `json:"category"`
+	Note      string     `json:"note,omitempty"`
 	RSVP      *GuestRSVP `json:"rsvp,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 type GuestRSVP struct {
@@ -40,9 +40,9 @@ type GuestRSVP struct {
 }
 
 type ImportSummary struct {
-	Imported int             `json:"imported"`
-	Skipped  int             `json:"skipped"`
-	Errors   []ImportError   `json:"errors"`
+	Imported int           `json:"imported"`
+	Skipped  int           `json:"skipped"`
+	Errors   []ImportError `json:"errors"`
 }
 
 type ImportError struct {

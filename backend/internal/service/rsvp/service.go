@@ -10,22 +10,32 @@ import (
 	"github.com/owndangan/backend/internal/model"
 	"github.com/owndangan/backend/internal/pkg/errors"
 	"github.com/owndangan/backend/internal/repository"
+	"github.com/owndangan/backend/internal/service/email"
 )
+
+type EmailSender interface {
+	SendAsync(to, subject, htmlBody string)
+}
 
 type Service struct {
 	rsvpRepo  repository.RSVPRepository
 	guestRepo repository.GuestRepository
 	eventRepo repository.EventRepository
+	userRepo  repository.UserRepository
 	auditRepo repository.AuditLogRepository
+	emailSvc  EmailSender
 }
 
 func NewService(rsvpRepo repository.RSVPRepository, guestRepo repository.GuestRepository,
-	eventRepo repository.EventRepository, auditRepo repository.AuditLogRepository) *Service {
+	eventRepo repository.EventRepository, userRepo repository.UserRepository,
+	auditRepo repository.AuditLogRepository, emailSvc EmailSender) *Service {
 	return &Service{
 		rsvpRepo:  rsvpRepo,
 		guestRepo: guestRepo,
 		eventRepo: eventRepo,
+		userRepo:  userRepo,
 		auditRepo: auditRepo,
+		emailSvc:  emailSvc,
 	}
 }
 
@@ -54,6 +64,7 @@ func (s *Service) Submit(ctx context.Context, eventID uuid.UUID, req SubmitRSVPR
 		if err := s.rsvpRepo.Update(ctx, existingRSVP); err != nil {
 			return nil, fmt.Errorf("update rsvp: %w", err)
 		}
+		s.notifyOwnerRSVP(ctx, event, guest, existingRSVP)
 		return existingRSVP, nil
 	}
 
@@ -83,6 +94,7 @@ func (s *Service) Submit(ctx context.Context, eventID uuid.UUID, req SubmitRSVPR
 		EntityID:   &rsvp.ID,
 	})
 
+	s.notifyOwnerRSVP(ctx, event, guest, rsvp)
 	return rsvp, nil
 }
 
@@ -113,11 +125,11 @@ func (s *Service) GetRecap(ctx context.Context, userID uuid.UUID, eventID uuid.U
 	attendingGuests, _ := s.rsvpRepo.SumGuestCountByAttendance(ctx, eventID, "attending")
 
 	return &RSVPRecap{
-		TotalResponded:   int(attending + notAttending + maybe),
-		Attending:        int(attending),
-		NotAttending:     int(notAttending),
-		Maybe:            int(maybe),
-		TotalGuestCount:  int(attendingGuests),
+		TotalResponded:  int(attending + notAttending + maybe),
+		Attending:       int(attending),
+		NotAttending:    int(notAttending),
+		Maybe:           int(maybe),
+		TotalGuestCount: int(attendingGuests),
 	}, nil
 }
 
@@ -131,4 +143,39 @@ func (s *Service) ListForExport(ctx context.Context, userID uuid.UUID, eventID u
 	}
 
 	return s.rsvpRepo.ListExportRows(ctx, eventID)
+}
+
+func attendanceLabel(attendance string) string {
+	switch attendance {
+	case "attending":
+		return "Hadir"
+	case "not_attending":
+		return "Tidak Hadir"
+	case "maybe":
+		return "Ragu-ragu"
+	default:
+		return attendance
+	}
+}
+
+func (s *Service) notifyOwnerRSVP(ctx context.Context, event *model.Event, guest *model.Guest, rsvp *model.RSVP) {
+	if s.emailSvc == nil {
+		return
+	}
+	owner, err := s.userRepo.GetByID(ctx, event.UserID)
+	if err != nil || owner == nil {
+		return
+	}
+	html, err := email.RenderRSVP(email.RSVPData{
+		OwnerName:   owner.Name,
+		GuestName:   guest.Name,
+		Invitation:  event.Title,
+		Attendance:  attendanceLabel(rsvp.Attendance),
+		GuestCount:  rsvp.GuestCount,
+		SubmittedAt: rsvp.SubmittedAt.Format("2 January 2006 15:04"),
+	})
+	if err != nil {
+		return
+	}
+	s.emailSvc.SendAsync(owner.Email, "Ada konfirmasi kehadiran baru", html)
 }

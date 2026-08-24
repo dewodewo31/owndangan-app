@@ -438,3 +438,23 @@ func TestAuth_JWT_TokenStructure(t *testing.T) {
 	expiresIn := data["expires_in"].(float64)
 	require.LessOrEqual(t, expiresIn, float64(900), "access token expiry should be <= 15 minutes (900 seconds)")
 }
+
+func TestAuth_Register_SendsWelcomeEmail(t *testing.T) {
+	rec := &recEmailSender{}
+	testEmailSender = rec
+	defer func() { testEmailSender = nil }()
+	setupAuthTestServer(t)
+
+	w := doAuthRequest(t, http.MethodPost, "/api/v1/auth/register", map[string]string{
+		"name":     "Welcome User",
+		"email":    "welcome@example.com",
+		"password": "securepassword123",
+	}, "")
+	require.Equal(t, http.StatusCreated, w.Code)
+
+	require.Equal(t, 1, rec.count(), "registration must enqueue exactly one welcome email")
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	require.Equal(t, "welcome@example.com", rec.emails[0].To)
+	require.Contains(t, rec.emails[0].HTML, "Welcome User")
+}

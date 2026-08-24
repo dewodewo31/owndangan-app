@@ -9,20 +9,29 @@ import (
 	"github.com/owndangan/backend/internal/model"
 	"github.com/owndangan/backend/internal/pkg/errors"
 	"github.com/owndangan/backend/internal/repository"
+	"github.com/owndangan/backend/internal/service/email"
 )
+
+type EmailSender interface {
+	SendAsync(to, subject, htmlBody string)
+}
 
 type Service struct {
 	guestbookRepo repository.GuestbookRepository
 	eventRepo     repository.EventRepository
+	userRepo      repository.UserRepository
 	auditRepo     repository.AuditLogRepository
+	emailSvc      EmailSender
 }
 
 func NewService(guestbookRepo repository.GuestbookRepository, eventRepo repository.EventRepository,
-	auditRepo repository.AuditLogRepository) *Service {
+	userRepo repository.UserRepository, auditRepo repository.AuditLogRepository, emailSvc EmailSender) *Service {
 	return &Service{
 		guestbookRepo: guestbookRepo,
 		eventRepo:     eventRepo,
+		userRepo:      userRepo,
 		auditRepo:     auditRepo,
+		emailSvc:      emailSvc,
 	}
 }
 
@@ -59,6 +68,7 @@ func (s *Service) Submit(ctx context.Context, eventID uuid.UUID, req SubmitMessa
 		EntityID:   &msg.ID,
 	})
 
+	s.notifyOwnerGuestbook(ctx, event, msg)
 	return msg, nil
 }
 
@@ -132,4 +142,25 @@ func (s *Service) Delete(ctx context.Context, userID uuid.UUID, messageID uuid.U
 	}
 
 	return s.guestbookRepo.Delete(ctx, messageID)
+}
+
+func (s *Service) notifyOwnerGuestbook(ctx context.Context, event *model.Event, msg *model.GuestbookMessage) {
+	if s.emailSvc == nil {
+		return
+	}
+	owner, err := s.userRepo.GetByID(ctx, event.UserID)
+	if err != nil || owner == nil {
+		return
+	}
+	html, err := email.RenderGuestbook(email.GuestbookData{
+		OwnerName:   owner.Name,
+		GuestName:   msg.Name,
+		Message:     msg.Message,
+		Invitation:  event.Title,
+		SubmittedAt: msg.CreatedAt.Format("2 January 2006 15:04"),
+	})
+	if err != nil {
+		return
+	}
+	s.emailSvc.SendAsync(owner.Email, "Ada pesan baru di buku tamu", html)
 }

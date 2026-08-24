@@ -15,11 +15,11 @@ import (
 )
 
 type Service struct {
-	guestRepo   repository.GuestRepository
-	eventRepo   repository.EventRepository
-	subRepo     repository.SubscriptionRepository
-	pkgRepo     repository.PackageRepository
-	auditRepo   repository.AuditLogRepository
+	guestRepo repository.GuestRepository
+	eventRepo repository.EventRepository
+	subRepo   repository.SubscriptionRepository
+	pkgRepo   repository.PackageRepository
+	auditRepo repository.AuditLogRepository
 }
 
 func NewService(guestRepo repository.GuestRepository, eventRepo repository.EventRepository,

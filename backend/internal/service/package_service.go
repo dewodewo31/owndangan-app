@@ -13,8 +13,8 @@ import (
 )
 
 type PackageService struct {
-	pkgRepo    repository.PackageRepository
-	auditRepo  repository.AuditLogRepository
+	pkgRepo   repository.PackageRepository
+	auditRepo repository.AuditLogRepository
 }
 
 func NewPackageService(pkgRepo repository.PackageRepository, auditRepo repository.AuditLogRepository) *PackageService {

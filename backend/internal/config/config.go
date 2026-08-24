@@ -11,14 +11,15 @@ import (
 )
 
 type Config struct {
-	Env      string
-	Port     string
-	Database DatabaseConfig
-	JWT      JWTConfig
-	Midtrans MidtransConfig
-	Storage  StorageConfig
-	CORS     CORSConfig
-	SMTP     SMTPConfig
+	Env         string
+	Port        string
+	Database    DatabaseConfig
+	JWT         JWTConfig
+	Midtrans    MidtransConfig
+	Storage     StorageConfig
+	CORS        CORSConfig
+	SMTP        SMTPConfig
+	FrontendURL string
 }
 
 type DatabaseConfig struct {
@@ -121,6 +122,7 @@ func Load() (*Config, error) {
 			From:     getEnv("SMTP_FROM", ""),
 			FromName: getEnv("SMTP_FROM_NAME", "Owndangan"),
 		},
+		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 	}
 
 	if cfg.JWT.Secret == "" {

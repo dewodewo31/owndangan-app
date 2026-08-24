@@ -51,8 +51,9 @@ func (h *Handler) GetAnalytics(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	_, page, perPage := parsePaginationAdmin(r)
 	status := r.URL.Query().Get("status")
+	search := r.URL.Query().Get("search")
 
-	users, total, err := h.adminSvc.ListUsers(r.Context(), page, perPage, status)
+	users, total, err := h.adminSvc.ListUsers(r.Context(), page, perPage, search, status)
 	if err != nil {
 		response.FromError(w, err, r)
 		return
@@ -181,8 +182,9 @@ func (h *Handler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	_, page, perPage := parsePaginationAdmin(r)
 	status := r.URL.Query().Get("status")
+	packageID := r.URL.Query().Get("package_id")
 
-	txns, total, err := h.adminSvc.GetTransactions(r.Context(), page, perPage, status)
+	txns, total, err := h.adminSvc.GetTransactions(r.Context(), page, perPage, status, packageID)
 	if err != nil {
 		response.FromError(w, err, r)
 		return

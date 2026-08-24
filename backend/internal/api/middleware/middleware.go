@@ -50,8 +50,8 @@ func RequestID(next http.Handler) http.Handler {
 
 type responseWriter struct {
 	http.ResponseWriter
-	status   int
-	start    time.Time
+	status int
+	start  time.Time
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
@@ -157,9 +157,9 @@ func RequireRole(roles ...string) func(http.Handler) http.Handler {
 }
 
 type rateEntry struct {
-	count      int
+	count       int
 	windowStart time.Time
-	mu         sync.Mutex
+	mu          sync.Mutex
 }
 
 func RateLimitPerIP(limit int, window time.Duration) func(http.Handler) http.Handler {

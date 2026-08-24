@@ -13,21 +13,26 @@ import (
 )
 
 type Service struct {
-	userRepo      repository.UserRepository
-	pkgRepo       repository.PackageRepository
-	txnRepo       repository.TransactionRepository
-	templateRepo  repository.TemplateRepository
-	auditRepo     repository.AuditLogRepository
+	userRepo     repository.UserRepository
+	pkgRepo      repository.PackageRepository
+	txnRepo      repository.TransactionRepository
+	templateRepo repository.TemplateRepository
+	subRepo      repository.SubscriptionRepository
+	eventRepo    repository.EventRepository
+	auditRepo    repository.AuditLogRepository
 }
 
 func NewService(userRepo repository.UserRepository, pkgRepo repository.PackageRepository,
 	txnRepo repository.TransactionRepository, templateRepo repository.TemplateRepository,
+	subRepo repository.SubscriptionRepository, eventRepo repository.EventRepository,
 	auditRepo repository.AuditLogRepository) *Service {
 	return &Service{
 		userRepo:     userRepo,
 		pkgRepo:      pkgRepo,
 		txnRepo:      txnRepo,
 		templateRepo: templateRepo,
+		subRepo:      subRepo,
+		eventRepo:    eventRepo,
 		auditRepo:    auditRepo,
 	}
 }
@@ -36,57 +41,82 @@ func (s *Service) GetAnalytics(ctx context.Context) (*Analytics, error) {
 	now := time.Now()
 	thirtyDaysAgo := now.AddDate(0, 0, -30)
 
-	users, _, _ := s.userRepo.List(ctx, 1, 10000)
-	activeUsers := int64(0)
-	for _, u := range users {
-		if u.Status == "active" {
-			activeUsers++
-		}
-	}
+	totalUsers, _ := s.userRepo.Count(ctx)
+	activeUsers, _ := s.userRepo.CountByStatus(ctx, "active")
 
-	txns, totalTxns, _ := s.txnRepo.ListAll(ctx, 1, 10000, "")
+	_, totalTxns, _ := s.txnRepo.ListAll(ctx, 1, 1, "", "")
+	settlementTxns, _, _ := s.txnRepo.ListAll(ctx, 1, 10000, "settlement", "")
 	var totalRevenue int64
-	settlementCount := 0
-	for _, t := range txns {
-		if t.Status == "settlement" {
-			totalRevenue += t.GrossAmount
-			settlementCount++
-		}
+	for _, t := range settlementTxns {
+		totalRevenue += t.GrossAmount
 	}
 
 	pkgs, _ := s.pkgRepo.GetAllActive(ctx)
 	templates, _ := s.templateRepo.ListAll(ctx)
 
+	activeSubs, _ := s.subRepo.CountActive(ctx)
+	totalInv, _ := s.eventRepo.Count(ctx)
+
+	recentTxns, _, _ := s.txnRepo.ListAll(ctx, 1, 5, "", "")
+	recentUsers, _, _ := s.userRepo.List(ctx, 1, 5, "", "")
+
 	return &Analytics{
-		TotalUsers:       int64(len(users)),
-		ActiveUsers:      activeUsers,
-		TotalTransactions: totalTxns,
-		TotalRevenue:     totalRevenue,
-		SettlementCount:  settlementCount,
-		ActivePackages:   len(pkgs),
-		ActiveTemplates:  len(templates),
-		PeriodStart:      thirtyDaysAgo,
-		PeriodEnd:        now,
+		TotalUsers:          totalUsers,
+		ActiveUsers:         activeUsers,
+		TotalTransactions:   totalTxns,
+		TotalRevenue:        totalRevenue,
+		SettlementCount:     len(settlementTxns),
+		ActivePackages:      len(pkgs),
+		ActiveTemplates:     len(templates),
+		ActiveSubscriptions: activeSubs,
+		TotalInvitations:    totalInv,
+		RecentTransactions:  toRecentTransactions(recentTxns),
+		RecentUsers:         toRecentUsers(recentUsers),
+		PeriodStart:         thirtyDaysAgo,
+		PeriodEnd:           now,
 	}, nil
 }
 
-func (s *Service) ListUsers(ctx context.Context, page, perPage int, status string) ([]model.User, int64, error) {
-	users, total, err := s.userRepo.List(ctx, page, perPage)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	if status != "" {
-		var filtered []model.User
-		for _, u := range users {
-			if u.Status == status {
-				filtered = append(filtered, u)
-			}
+func toRecentTransactions(txns []model.Transaction) []RecentTransaction {
+	out := make([]RecentTransaction, 0, len(txns))
+	for _, t := range txns {
+		ts := t.CreatedAt
+		if t.TransactionTime != nil {
+			ts = *t.TransactionTime
 		}
-		return filtered, int64(len(filtered)), nil
+		name, email := "", ""
+		if t.User.ID != uuid.Nil {
+			name = t.User.Name
+			email = t.User.Email
+		}
+		out = append(out, RecentTransaction{
+			ID:        t.ID,
+			UserName:  name,
+			UserEmail: email,
+			Amount:    t.GrossAmount,
+			Status:    t.Status,
+			Timestamp: ts,
+		})
 	}
+	return out
+}
 
-	return users, total, nil
+func toRecentUsers(users []model.User) []RecentUser {
+	out := make([]RecentUser, 0, len(users))
+	for _, u := range users {
+		out = append(out, RecentUser{
+			ID:        u.ID,
+			Name:      u.Name,
+			Email:     u.Email,
+			Status:    u.Status,
+			CreatedAt: u.CreatedAt,
+		})
+	}
+	return out
+}
+
+func (s *Service) ListUsers(ctx context.Context, page, perPage int, search, status string) ([]model.User, int64, error) {
+	return s.userRepo.List(ctx, page, perPage, search, status)
 }
 
 func (s *Service) UpdateUserStatus(ctx context.Context, userID uuid.UUID, status string) error {
@@ -220,8 +250,8 @@ func (s *Service) UpdateTemplate(ctx context.Context, templateID uuid.UUID, req 
 	return t, nil
 }
 
-func (s *Service) GetTransactions(ctx context.Context, page, perPage int, status string) ([]model.Transaction, int64, error) {
-	return s.txnRepo.ListAll(ctx, page, perPage, status)
+func (s *Service) GetTransactions(ctx context.Context, page, perPage int, status, packageID string) ([]model.Transaction, int64, error) {
+	return s.txnRepo.ListAll(ctx, page, perPage, status, packageID)
 }
 
 func (s *Service) GetTransactionDetail(ctx context.Context, txnID uuid.UUID) (*model.Transaction, error) {
@@ -229,15 +259,36 @@ func (s *Service) GetTransactionDetail(ctx context.Context, txnID uuid.UUID) (*m
 }
 
 type Analytics struct {
-	TotalUsers       int64     `json:"total_users"`
-	ActiveUsers      int64     `json:"active_users"`
-	TotalTransactions int64    `json:"total_transactions"`
-	TotalRevenue     int64     `json:"total_revenue"`
-	SettlementCount  int       `json:"settlement_count"`
-	ActivePackages   int       `json:"active_packages"`
-	ActiveTemplates  int       `json:"active_templates"`
-	PeriodStart      time.Time `json:"period_start"`
-	PeriodEnd        time.Time `json:"period_end"`
+	TotalUsers          int64               `json:"total_users"`
+	ActiveUsers         int64               `json:"active_users"`
+	TotalTransactions   int64               `json:"total_transactions"`
+	TotalRevenue        int64               `json:"total_revenue"`
+	SettlementCount     int                 `json:"settlement_count"`
+	ActivePackages      int                 `json:"active_packages"`
+	ActiveTemplates     int                 `json:"active_templates"`
+	ActiveSubscriptions int64               `json:"active_subscriptions"`
+	TotalInvitations    int64               `json:"total_invitations"`
+	RecentTransactions  []RecentTransaction `json:"recent_transactions"`
+	RecentUsers         []RecentUser        `json:"recent_users"`
+	PeriodStart         time.Time           `json:"period_start"`
+	PeriodEnd           time.Time           `json:"period_end"`
+}
+
+type RecentTransaction struct {
+	ID        uuid.UUID `json:"id"`
+	UserName  string    `json:"user_name"`
+	UserEmail string    `json:"user_email"`
+	Amount    int64     `json:"amount"`
+	Status    string    `json:"status"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type RecentUser struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type CreatePackageRequest struct {

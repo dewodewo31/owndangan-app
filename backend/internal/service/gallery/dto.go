@@ -16,12 +16,12 @@ type AddPhotoRequest struct {
 }
 
 type PhotoResponse struct {
-	ID         string `json:"id"`
-	EventID    string `json:"event_id"`
-	ImageURL   string `json:"image_url"`
-	Caption    string `json:"caption,omitempty"`
-	SortOrder  int    `json:"sort_order"`
-	CreatedAt  string `json:"created_at"`
+	ID        string `json:"id"`
+	EventID   string `json:"event_id"`
+	ImageURL  string `json:"image_url"`
+	Caption   string `json:"caption,omitempty"`
+	SortOrder int    `json:"sort_order"`
+	CreatedAt string `json:"created_at"`
 }
 
 func ToPhotoResponse(photo *model.GalleryPhoto) PhotoResponse {

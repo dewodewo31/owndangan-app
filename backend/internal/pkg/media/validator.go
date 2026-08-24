@@ -8,9 +8,9 @@ import (
 )
 
 type ValidationConfig struct {
-	MaxImageSize   int64
-	MaxAudioSize   int64
-	MaxVideoSize   int64
+	MaxImageSize      int64
+	MaxAudioSize      int64
+	MaxVideoSize      int64
 	AllowedImageTypes []string
 	AllowedAudioTypes []string
 	AllowedVideoTypes []string
@@ -18,9 +18,9 @@ type ValidationConfig struct {
 
 func DefaultValidationConfig() ValidationConfig {
 	return ValidationConfig{
-		MaxImageSize:   5 * 1024 * 1024,
-		MaxAudioSize:   10 * 1024 * 1024,
-		MaxVideoSize:   50 * 1024 * 1024,
+		MaxImageSize: 5 * 1024 * 1024,
+		MaxAudioSize: 10 * 1024 * 1024,
+		MaxVideoSize: 50 * 1024 * 1024,
 		AllowedImageTypes: []string{
 			"image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
 		},

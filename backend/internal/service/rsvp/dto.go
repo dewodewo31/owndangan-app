@@ -18,13 +18,13 @@ type RSVPRecap struct {
 }
 
 type RSVPResponse struct {
-	ID           string `json:"id"`
-	GuestID      string `json:"guest_id"`
-	EventID      string `json:"event_id"`
-	Attendance   string `json:"attendance"`
-	GuestCount   int    `json:"guest_count"`
-	Message      string `json:"message,omitempty"`
-	SubmittedAt  string `json:"submitted_at"`
+	ID          string `json:"id"`
+	GuestID     string `json:"guest_id"`
+	EventID     string `json:"event_id"`
+	Attendance  string `json:"attendance"`
+	GuestCount  int    `json:"guest_count"`
+	Message     string `json:"message,omitempty"`
+	SubmittedAt string `json:"submitted_at"`
 }
 
 func ToRSVPResponse(rsvp *model.RSVP) RSVPResponse {

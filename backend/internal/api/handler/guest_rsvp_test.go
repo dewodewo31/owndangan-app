@@ -183,4 +183,3 @@ func TestGuestbook_Moderation(t *testing.T) {
 	w := doAuthRequest(t, http.MethodGet, "/api/v1/guestbook/"+eventID+"/all", nil, token)
 	require.Equal(t, http.StatusOK, w.Code)
 }
-

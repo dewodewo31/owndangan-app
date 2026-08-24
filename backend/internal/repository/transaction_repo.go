@@ -15,7 +15,7 @@ type TransactionRepository interface {
 	GetByOrderID(ctx context.Context, orderID string) (*model.Transaction, error)
 	Update(ctx context.Context, txn *model.Transaction) error
 	ListByUserID(ctx context.Context, userID uuid.UUID, page, perPage int) ([]model.Transaction, int64, error)
-	ListAll(ctx context.Context, page, perPage int, status string) ([]model.Transaction, int64, error)
+	ListAll(ctx context.Context, page, perPage int, status, packageID string) ([]model.Transaction, int64, error)
 }
 
 type transactionRepo struct {
@@ -68,13 +68,16 @@ func (r *transactionRepo) ListByUserID(ctx context.Context, userID uuid.UUID, pa
 	return txns, total, err
 }
 
-func (r *transactionRepo) ListAll(ctx context.Context, page, perPage int, status string) ([]model.Transaction, int64, error) {
+func (r *transactionRepo) ListAll(ctx context.Context, page, perPage int, status, packageID string) ([]model.Transaction, int64, error) {
 	var txns []model.Transaction
 	var total int64
 	offset := (page - 1) * perPage
 	query := r.db.WithContext(ctx).Preload("Package").Preload("User").Model(&model.Transaction{})
 	if status != "" {
 		query = query.Where("status = ?", status)
+	}
+	if packageID != "" {
+		query = query.Where("package_id = ?", packageID)
 	}
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -89,6 +92,7 @@ type SubscriptionRepository interface {
 	GetActiveByUserID(ctx context.Context, userID uuid.UUID) (*model.Subscription, error)
 	GetByTransactionID(ctx context.Context, txnID uuid.UUID) (*model.Subscription, error)
 	Update(ctx context.Context, sub *model.Subscription) error
+	CountActive(ctx context.Context) (int64, error)
 	CountExpired(ctx context.Context) (int64, error)
 	DeactivateActive(ctx context.Context, userID uuid.UUID) error
 	ListExpiringBetween(ctx context.Context, from, to time.Time) ([]model.Subscription, error)
@@ -146,6 +150,15 @@ func (r *subscriptionRepo) GetByTransactionID(ctx context.Context, txnID uuid.UU
 
 func (r *subscriptionRepo) Update(ctx context.Context, sub *model.Subscription) error {
 	return r.db.WithContext(ctx).Save(sub).Error
+}
+
+func (r *subscriptionRepo) CountActive(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&model.Subscription{}).
+		Where("status = ?", "active").
+		Count(&count).Error
+	return count, err
 }
 
 func (r *subscriptionRepo) CountExpired(ctx context.Context) (int64, error) {
