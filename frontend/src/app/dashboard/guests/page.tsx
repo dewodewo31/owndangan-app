@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { GuestImportDialog } from "@/components/dashboard/guest-import-dialog"
 import api from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -52,6 +53,8 @@ export default function GuestsPage() {
   const [deletedLoading, setDeletedLoading] = useState(false)
   const [view, setView] = useState<'active' | 'trash'>('active')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [eventId, setEventId] = useState<string | null>(null)
   const [newGuest, setNewGuest] = useState({ name: '', phone: '', category: 'family', note: '' })
 
   useEffect(() => {
@@ -63,6 +66,7 @@ export default function GuestsPage() {
       const eventsRes = await api.get('/events')
       const events = eventsRes.data?.data || []
       if (events.length > 0) {
+        setEventId(events[0].id)
         const guestsRes = await api.get(`/events/${events[0].id}/guests`)
         setGuests(guestsRes.data?.data || [])
       }
@@ -76,12 +80,9 @@ export default function GuestsPage() {
   const fetchDeletedGuests = async () => {
     try {
       setDeletedLoading(true)
-      const eventsRes = await api.get('/events')
-      const events = eventsRes.data?.data || []
-      if (events.length > 0) {
-        const deletedRes = await api.get(`/events/${events[0].id}/guests/deleted`)
-        setDeletedGuests(deletedRes.data?.data || [])
-      }
+      if (!eventId) return
+      const deletedRes = await api.get(`/events/${eventId}/guests/deleted`)
+      setDeletedGuests(deletedRes.data?.data || [])
     } catch (error) {
       console.error('Failed to fetch deleted guests:', error)
     } finally {
@@ -91,14 +92,11 @@ export default function GuestsPage() {
 
   const handleRestoreGuest = async (guestID: string) => {
     try {
-      const eventsRes = await api.get('/events')
-      const events = eventsRes.data?.data || []
-      if (events.length > 0) {
-        await api.post(`/events/${events[0].id}/guests/${guestID}/restore`)
-        alert('Tamu berhasil dipulihkan')
-        fetchGuests()
-        fetchDeletedGuests()
-      }
+      if (!eventId) return
+      await api.post(`/events/${eventId}/guests/${guestID}/restore`)
+      alert('Tamu berhasil dipulihkan')
+      fetchGuests()
+      fetchDeletedGuests()
     } catch (error) {
       alert('Gagal memulihkan tamu')
     }
@@ -106,14 +104,11 @@ export default function GuestsPage() {
 
   const handleAddGuest = async () => {
     try {
-      const eventsRes = await api.get('/events')
-      const events = eventsRes.data?.data || []
-      if (events.length > 0) {
-        await api.post(`/events/${events[0].id}/guests`, newGuest)
-        setShowAddModal(false)
-        setNewGuest({ name: '', phone: '', category: 'family', note: '' })
-        fetchGuests()
-      }
+      if (!eventId) return
+      await api.post(`/events/${eventId}/guests`, newGuest)
+      setShowAddModal(false)
+      setNewGuest({ name: '', phone: '', category: 'family', note: '' })
+      fetchGuests()
     } catch (error) {
       alert('Gagal menambahkan tamu')
     }
@@ -122,12 +117,9 @@ export default function GuestsPage() {
   const handleDeleteGuest = async (guestID: string) => {
     if (!confirm('Yakin ingin menghapus tamu ini?')) return
     try {
-      const eventsRes = await api.get('/events')
-      const events = eventsRes.data?.data || []
-      if (events.length > 0) {
-        await api.delete(`/events/${events[0].id}/guests/${guestID}`)
-        fetchGuests()
-      }
+      if (!eventId) return
+      await api.delete(`/events/${eventId}/guests/${guestID}`)
+      fetchGuests()
     } catch (error) {
       alert('Gagal menghapus tamu')
     }
@@ -151,7 +143,7 @@ export default function GuestsPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setShowImportModal(true)} disabled={!eventId}>
                 <Download className="h-4 w-4 mr-2" />
                 Impor CSV
               </Button>
@@ -419,6 +411,15 @@ export default function GuestsPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {eventId && (
+          <GuestImportDialog
+            open={showImportModal}
+            onOpenChange={setShowImportModal}
+            eventId={eventId}
+            onImported={fetchGuests}
+          />
         )}
       </DashboardLayout>
     </ProtectedRoute>
