@@ -1,8 +1,10 @@
 package handler_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -182,4 +184,248 @@ func TestGuestbook_Moderation(t *testing.T) {
 	}, "")
 	w := doAuthRequest(t, http.MethodGet, "/api/v1/guestbook/"+eventID+"/all", nil, token)
 	require.Equal(t, http.StatusOK, w.Code)
+}
+
+// --- Import (preview -> confirm) tests ---
+
+type importPreviewRow struct {
+	Index    int      `json:"index"`
+	Name     string   `json:"name"`
+	Email    string   `json:"email"`
+	Phone    string   `json:"phone"`
+	Category string   `json:"category"`
+	Status   string   `json:"status"`
+	Errors   []string `json:"errors"`
+}
+
+type importPreviewResp struct {
+	Columns []string           `json:"columns"`
+	Rows    []importPreviewRow `json:"rows"`
+	Summary struct {
+		Total     int `json:"total"`
+		Valid     int `json:"valid"`
+		Duplicate int `json:"duplicate"`
+		Invalid   int `json:"invalid"`
+	} `json:"summary"`
+}
+
+type importConfirmResp struct {
+	Total      int `json:"total"`
+	Imported   int `json:"imported"`
+	Duplicates int `json:"duplicates"`
+	Errors     []struct {
+		Index  int      `json:"index"`
+		Errors []string `json:"errors"`
+	} `json:"errors"`
+}
+
+func doImportPreview(t *testing.T, eventID, token, csvContent string) *httptest.ResponseRecorder {
+	t.Helper()
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	fw, err := mw.CreateFormFile("file", "guests.csv")
+	require.NoError(t, err)
+	_, err = fw.Write([]byte(csvContent))
+	require.NoError(t, err)
+	require.NoError(t, mw.Close())
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+eventID+"/guests/import", &buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	testServer.Handler().(*chi.Mux).ServeHTTP(rec, req)
+	return rec
+}
+
+func TestGuest_ImportPreviewConfirm(t *testing.T) {
+	setupAuthTestServer(t)
+	token, eventID := createTestUserAndEvent(t)
+
+	csv := "name,phone,category\nAlice,6281111111,keluarga\nBob,6282222222,teman\n"
+	previewRec := doImportPreview(t, eventID, token, csv)
+	require.Equal(t, http.StatusOK, previewRec.Code, previewRec.Body.String())
+
+	var previewWrap struct {
+		Data importPreviewResp `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(previewRec.Body.Bytes(), &previewWrap))
+	preview := previewWrap.Data
+	require.Equal(t, 2, preview.Summary.Total)
+	require.Equal(t, 2, preview.Summary.Valid)
+	require.Equal(t, 0, preview.Summary.Duplicate)
+	require.Equal(t, 0, preview.Summary.Invalid)
+	require.Len(t, preview.Rows, 2)
+	require.Equal(t, "valid", preview.Rows[0].Status)
+	require.Equal(t, "keluarga", preview.Rows[0].Category)
+
+	// Confirm the previewed rows.
+	rows := make([]map[string]string, 0, len(preview.Rows))
+	for _, r := range preview.Rows {
+		rows = append(rows, map[string]string{
+			"name": r.Name, "email": r.Email, "phone": r.Phone, "category": r.Category,
+		})
+	}
+	confirmRec := doAuthRequest(t, http.MethodPost, "/api/v1/events/"+eventID+"/guests/import/confirm",
+		map[string]interface{}{"rows": rows}, token)
+	require.Equal(t, http.StatusOK, confirmRec.Code, confirmRec.Body.String())
+
+	var confirmWrap struct {
+		Data importConfirmResp `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(confirmRec.Body.Bytes(), &confirmWrap))
+	confirm := confirmWrap.Data
+	require.Equal(t, 2, confirm.Total)
+	require.Equal(t, 2, confirm.Imported)
+	require.Equal(t, 0, confirm.Duplicates)
+	require.Empty(t, confirm.Errors)
+}
+
+func TestGuest_ImportDuplicate(t *testing.T) {
+	setupAuthTestServer(t)
+	token, eventID := createTestUserAndEvent(t)
+
+	// Seed an existing guest that should be detected as a duplicate.
+	doAuthRequest(t, http.MethodPost, "/api/v1/events/"+eventID+"/guests", map[string]string{
+		"name": "Existing", "phone": "6289999999",
+	}, token)
+
+	// "Existing" collides with DB; the two "New" rows collide with each other.
+	csv := "name,phone\nExisting,6289999999\nNew,6288888888\nNew,6288888888\n"
+	previewRec := doImportPreview(t, eventID, token, csv)
+	require.Equal(t, http.StatusOK, previewRec.Code, previewRec.Body.String())
+
+	var previewWrap struct {
+		Data importPreviewResp `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(previewRec.Body.Bytes(), &previewWrap))
+	preview := previewWrap.Data
+	require.Equal(t, 3, preview.Summary.Total)
+	require.Equal(t, 1, preview.Summary.Valid)
+	require.Equal(t, 2, preview.Summary.Duplicate)
+	require.Equal(t, 0, preview.Summary.Invalid)
+	require.Equal(t, "duplicate", preview.Rows[0].Status)
+	require.Equal(t, "valid", preview.Rows[1].Status)
+	require.Equal(t, "duplicate", preview.Rows[2].Status)
+
+	// Confirm all three rows: one imported, two duplicates.
+	rows := []map[string]string{
+		{"name": "Existing", "phone": "6289999999"},
+		{"name": "New", "phone": "6288888888"},
+		{"name": "New", "phone": "6288888888"},
+	}
+	confirmRec := doAuthRequest(t, http.MethodPost, "/api/v1/events/"+eventID+"/guests/import/confirm",
+		map[string]interface{}{"rows": rows}, token)
+	require.Equal(t, http.StatusOK, confirmRec.Code, confirmRec.Body.String())
+
+	var confirmWrap struct {
+		Data importConfirmResp `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(confirmRec.Body.Bytes(), &confirmWrap))
+	confirm := confirmWrap.Data
+	require.Equal(t, 3, confirm.Total)
+	require.Equal(t, 1, confirm.Imported)
+	require.Equal(t, 2, confirm.Duplicates)
+}
+
+func TestGuest_ImportInvalid(t *testing.T) {
+	setupAuthTestServer(t)
+	token, eventID := createTestUserAndEvent(t)
+
+	csv := "name,phone\n,6281111111\nValid,6282222222\n"
+	previewRec := doImportPreview(t, eventID, token, csv)
+	require.Equal(t, http.StatusOK, previewRec.Code, previewRec.Body.String())
+
+	var previewWrap struct {
+		Data importPreviewResp `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(previewRec.Body.Bytes(), &previewWrap))
+	preview := previewWrap.Data
+	require.Equal(t, 2, preview.Summary.Total)
+	require.Equal(t, 1, preview.Summary.Valid)
+	require.Equal(t, 1, preview.Summary.Invalid)
+	require.Equal(t, "invalid", preview.Rows[0].Status)
+	require.Equal(t, "valid", preview.Rows[1].Status)
+
+	rows := []map[string]string{
+		{"name": "", "phone": "6281111111"},
+		{"name": "Valid", "phone": "6282222222"},
+	}
+	confirmRec := doAuthRequest(t, http.MethodPost, "/api/v1/events/"+eventID+"/guests/import/confirm",
+		map[string]interface{}{"rows": rows}, token)
+	require.Equal(t, http.StatusOK, confirmRec.Code, confirmRec.Body.String())
+
+	var confirmWrap struct {
+		Data importConfirmResp `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(confirmRec.Body.Bytes(), &confirmWrap))
+	confirm := confirmWrap.Data
+	require.Equal(t, 2, confirm.Total)
+	require.Equal(t, 1, confirm.Imported)
+	require.Len(t, confirm.Errors, 1)
+	require.Equal(t, 1, confirm.Errors[0].Index)
+}
+
+func TestGuest_ImportXlsxRejected(t *testing.T) {
+	setupAuthTestServer(t)
+	token, eventID := createTestUserAndEvent(t)
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	fw, err := mw.CreateFormFile("file", "guests.xlsx")
+	require.NoError(t, err)
+	_, err = fw.Write([]byte("PK\x03\x04 fake xlsx"))
+	require.NoError(t, err)
+	require.NoError(t, mw.Close())
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+eventID+"/guests/import", &buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	testServer.Handler().(*chi.Mux).ServeHTTP(rec, req)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+// --- Public invitations endpoint test ---
+
+func TestInvitations_Public(t *testing.T) {
+	setupAuthTestServer(t)
+	token, eventID := createTestUserAndEvent(t)
+
+	// Get the event slug.
+	evRec := doAuthRequest(t, http.MethodGet, "/api/v1/events/"+eventID, nil, token)
+	require.Equal(t, http.StatusOK, evRec.Code)
+	var evData map[string]interface{}
+	require.NoError(t, json.Unmarshal(evRec.Body.Bytes(), &evData))
+	slug := evData["data"].(map[string]interface{})["slug"].(string)
+	require.NotEmpty(t, slug)
+
+	// Draft event must not appear in the public feed.
+	pubRec := doAuthRequest(t, http.MethodGet, "/api/v1/invitations/public", nil, "")
+	require.Equal(t, http.StatusOK, pubRec.Code)
+	var pubWrap struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(pubRec.Body.Bytes(), &pubWrap))
+	pubData := pubWrap.Data
+	for _, it := range pubData {
+		require.NotEqual(t, slug, it["slug"], "draft event must not be public")
+	}
+
+	// Publish and confirm it shows up.
+	doAuthRequest(t, http.MethodPost, "/api/v1/events/"+eventID+"/publish", nil, token)
+	pubRec2 := doAuthRequest(t, http.MethodGet, "/api/v1/invitations/public", nil, "")
+	require.Equal(t, http.StatusOK, pubRec2.Code)
+	var pubWrap2 struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(pubRec2.Body.Bytes(), &pubWrap2))
+	pubData2 := pubWrap2.Data
+	found := false
+	for _, it := range pubData2 {
+		if it["slug"] == slug {
+			found = true
+			require.NotEmpty(t, it["updated_at"])
+		}
+	}
+	require.True(t, found, "published event should appear in public feed")
 }

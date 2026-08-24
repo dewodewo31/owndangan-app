@@ -18,6 +18,7 @@ type EventRepository interface {
 	Count(ctx context.Context) (int64, error)
 	CountByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	IncrementViewCount(ctx context.Context, slug string) error
+	ListPublic(ctx context.Context) ([]model.Event, error)
 	WithTx(tx *gorm.DB) EventRepository
 }
 
@@ -104,6 +105,16 @@ func (r *eventRepo) CountByUser(ctx context.Context, userID uuid.UUID) (int64, e
 func (r *eventRepo) IncrementViewCount(ctx context.Context, slug string) error {
 	return r.db.WithContext(ctx).Model(&model.Event{}).Where("slug = ? AND deleted_at IS NULL", slug).
 		Update("view_count", gorm.Expr("view_count + ?", 1)).Error
+}
+
+// ListPublic returns published, non-deleted events for the public sitemap.
+func (r *eventRepo) ListPublic(ctx context.Context) ([]model.Event, error) {
+	var events []model.Event
+	err := r.db.WithContext(ctx).
+		Where("status = ? AND deleted_at IS NULL", "published").
+		Order("updated_at DESC").
+		Find(&events).Error
+	return events, err
 }
 
 type EventSectionRepository interface {

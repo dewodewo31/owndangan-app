@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -11,6 +12,12 @@ import (
 	"github.com/owndangan/backend/internal/pkg/validator"
 	"github.com/owndangan/backend/internal/service"
 )
+
+// PublicInvitation is the minimal payload exposed in the public sitemap feed.
+type PublicInvitation struct {
+	Slug      string `json:"slug"`
+	UpdatedAt string `json:"updated_at"`
+}
 
 type EventHandler struct {
 	eventSvc *service.EventService
@@ -140,6 +147,21 @@ func (h *EventHandler) PublicView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, http.StatusOK, resp, r)
+}
+
+// PublicList returns published, non-deleted invitations for the sitemap (no auth).
+func (h *EventHandler) PublicList(w http.ResponseWriter, r *http.Request) {
+	events, err := h.eventSvc.ListPublic(r.Context())
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+
+	out := make([]PublicInvitation, len(events))
+	for i, e := range events {
+		out[i] = PublicInvitation{Slug: e.Slug, UpdatedAt: e.UpdatedAt.Format(time.RFC3339)}
+	}
+	response.JSON(w, http.StatusOK, out, r)
 }
 
 func (h *EventHandler) RegisterRoutes(r chi.Router, authRequired func(http.Handler) http.Handler, publicHandler http.HandlerFunc) {

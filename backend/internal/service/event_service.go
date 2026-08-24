@@ -364,6 +364,11 @@ func (s *EventService) List(ctx context.Context, userID uuid.UUID, params pagina
 	return result, total, nil
 }
 
+// ListPublic returns published, non-deleted events for the public sitemap.
+func (s *EventService) ListPublic(ctx context.Context) ([]model.Event, error) {
+	return s.eventRepo.ListPublic(ctx)
+}
+
 func (s *EventService) GetPublicBySlug(ctx context.Context, slug string) (*dto.PublicEventResponse, error) {
 	event, err := s.eventRepo.GetBySlug(ctx, slug)
 	if err != nil || event == nil {

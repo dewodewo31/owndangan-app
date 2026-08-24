@@ -20,6 +20,7 @@ type GuestRepository interface {
 	Restore(ctx context.Context, id, eventID uuid.UUID) error
 	ListDeleted(ctx context.Context, eventID uuid.UUID) ([]model.Guest, error)
 	CountByEvent(ctx context.Context, eventID uuid.UUID) (int64, error)
+	FindExistingForEvent(ctx context.Context, eventID uuid.UUID) ([]model.Guest, error)
 	BulkCreate(ctx context.Context, guests []model.Guest) error
 	IsTokenTaken(ctx context.Context, token string) (bool, error)
 	WithTx(tx *gorm.DB) GuestRepository
@@ -128,6 +129,16 @@ func (r *guestRepo) CountByEvent(ctx context.Context, eventID uuid.UUID) (int64,
 
 func (r *guestRepo) BulkCreate(ctx context.Context, guests []model.Guest) error {
 	return r.db.WithContext(ctx).Create(&guests).Error
+}
+
+// FindExistingForEvent returns all non-deleted guests for an event, used for
+// duplicate detection during import.
+func (r *guestRepo) FindExistingForEvent(ctx context.Context, eventID uuid.UUID) ([]model.Guest, error) {
+	var guests []model.Guest
+	err := r.db.WithContext(ctx).
+		Where("event_id = ? AND deleted_at IS NULL", eventID).
+		Find(&guests).Error
+	return guests, err
 }
 
 func (r *guestRepo) IsTokenTaken(ctx context.Context, token string) (bool, error) {

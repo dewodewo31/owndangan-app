@@ -65,13 +65,9 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, eventID uuid.UUI
 		EventID:  eventID,
 		Name:     req.Name,
 		Phone:    strings.TrimSpace(req.Phone),
-		Category: req.Category,
+		Category: model.NormalizeGuestCategory(req.Category),
 		Note:     strings.TrimSpace(req.Note),
 		Token:    token,
-	}
-
-	if guest.Category == "" {
-		guest.Category = "family"
 	}
 
 	if err := s.guestRepo.Create(ctx, guest); err != nil {
@@ -157,7 +153,7 @@ func (s *Service) Update(ctx context.Context, userID uuid.UUID, guestID uuid.UUI
 		guest.Phone = strings.TrimSpace(*req.Phone)
 	}
 	if req.Category != nil {
-		guest.Category = *req.Category
+		guest.Category = model.NormalizeGuestCategory(*req.Category)
 	}
 	if req.Note != nil {
 		guest.Note = strings.TrimSpace(*req.Note)
@@ -233,7 +229,10 @@ func (s *Service) Delete(ctx context.Context, userID uuid.UUID, guestID uuid.UUI
 	return nil
 }
 
-func (s *Service) ImportCSV(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, reader io.Reader) (*ImportResult, error) {
+// PreviewImport parses a CSV guest file and returns a preview with per-row
+// validation and duplicate detection (within file and against existing guests).
+// It does NOT persist anything.
+func (s *Service) PreviewImport(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, reader io.Reader, mapping *ImportMapping) (*ImportPreview, error) {
 	event, err := s.eventRepo.GetByID(ctx, eventID)
 	if err != nil || event == nil {
 		return nil, errors.ErrNotFound
@@ -242,73 +241,134 @@ func (s *Service) ImportCSV(ctx context.Context, userID uuid.UUID, eventID uuid.
 		return nil, errors.ErrForbidden
 	}
 
-	currentCount, _ := s.guestRepo.CountByEvent(ctx, eventID)
-	if err := s.checkGuestLimit(ctx, eventID, userID, int(currentCount)); err != nil {
-		return nil, err
-	}
-
 	csvReader := csv.NewReader(reader)
 	csvReader.TrimLeadingSpace = true
+	csvReader.FieldsPerRecord = -1
 
 	header, err := csvReader.Read()
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid CSV format", errors.ErrInvalidInput)
 	}
 
-	nameIdx := -1
-	phoneIdx := -1
-	categoryIdx := -1
-	noteIdx := -1
-
-	for i, col := range header {
-		switch strings.ToLower(strings.TrimSpace(col)) {
-		case "name", "nama":
-			nameIdx = i
-		case "phone", "telepon", "hp":
-			phoneIdx = i
-		case "category", "kategori", "group":
-			categoryIdx = i
-		case "note", "catatan":
-			noteIdx = i
-		}
-	}
+	nameIdx := findColumn(header, candidates([]string{"name", "nama"}, mappingVal(mapping, "name")))
+	emailIdx := findColumn(header, candidates([]string{"email", "e-mail", "alamat email"}, mappingVal(mapping, "email")))
+	phoneIdx := findColumn(header, candidates([]string{"phone", "telepon", "hp", "no hp"}, mappingVal(mapping, "phone")))
+	categoryIdx := findColumn(header, candidates([]string{"category", "kategori", "group"}, mappingVal(mapping, "category")))
 
 	if nameIdx == -1 {
 		return nil, fmt.Errorf("%w: CSV must have a 'name' column", errors.ErrInvalidInput)
 	}
 
-	result := &ImportResult{}
+	existing, err := s.guestRepo.FindExistingForEvent(ctx, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("load existing guests: %w", err)
+	}
+	existingPhones := make(map[string]bool, len(existing))
+	existingNames := make(map[string]bool, len(existing))
+	for _, g := range existing {
+		if p := strings.TrimSpace(strings.ToLower(g.Phone)); p != "" {
+			existingPhones[p] = true
+		}
+		if n := strings.TrimSpace(strings.ToLower(g.Name)); n != "" {
+			existingNames[n] = true
+		}
+	}
+
+	preview := &ImportPreview{Columns: header}
+	seen := make(map[string]bool)
+	index := 0
 	for {
 		record, err := csvReader.Read()
 		if err == io.EOF {
 			break
 		}
+		index++
 		if err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("row %d: %v", result.Total+1, err))
+			preview.Rows = append(preview.Rows, ImportPreviewRow{
+				Index:  index,
+				Status: "invalid",
+				Errors: []string{fmt.Sprintf("could not parse row: %v", err)},
+			})
+			preview.Summary.Total++
+			preview.Summary.Invalid++
 			continue
 		}
 
-		result.Total++
-		if nameIdx >= len(record) || strings.TrimSpace(record[nameIdx]) == "" {
-			result.Errors = append(result.Errors, fmt.Sprintf("row %d: name is required", result.Total))
+		row := buildPreviewRow(record, index, nameIdx, emailIdx, phoneIdx, categoryIdx)
+		key := contactKey(row.Email, row.Phone, row.Name)
+
+		switch {
+		case row.Status == "invalid":
+			preview.Summary.Invalid++
+		case seen[key]:
+			row.Status = "duplicate"
+			row.Errors = append(row.Errors, "duplicate within file")
+			preview.Summary.Duplicate++
+		case (row.Phone != "" && existingPhones[strings.ToLower(row.Phone)]) ||
+			(row.Name != "" && existingNames[strings.ToLower(row.Name)]):
+			row.Status = "duplicate"
+			row.Errors = append(row.Errors, "already exists for this event")
+			preview.Summary.Duplicate++
+		default:
+			seen[key] = true
+			preview.Summary.Valid++
+		}
+		preview.Rows = append(preview.Rows, row)
+		preview.Summary.Total++
+	}
+
+	return preview, nil
+}
+
+// ConfirmImport re-validates the selected rows and inserts them. It de-duplicates
+// again against the database and within the request batch.
+func (s *Service) ConfirmImport(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, req ImportConfirmRequest) (*ImportConfirmResult, error) {
+	event, err := s.eventRepo.GetByID(ctx, eventID)
+	if err != nil || event == nil {
+		return nil, errors.ErrNotFound
+	}
+	if event.UserID != userID {
+		return nil, errors.ErrForbidden
+	}
+
+	if err := s.checkGuestLimit(ctx, eventID, userID, len(req.Rows)); err != nil {
+		return nil, err
+	}
+
+	existing, err := s.guestRepo.FindExistingForEvent(ctx, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("load existing guests: %w", err)
+	}
+	existingPhones := make(map[string]bool, len(existing))
+	existingNames := make(map[string]bool, len(existing))
+	for _, g := range existing {
+		if p := strings.TrimSpace(strings.ToLower(g.Phone)); p != "" {
+			existingPhones[p] = true
+		}
+		if n := strings.TrimSpace(strings.ToLower(g.Name)); n != "" {
+			existingNames[n] = true
+		}
+	}
+
+	result := &ImportConfirmResult{Total: len(req.Rows)}
+	seen := make(map[string]bool)
+	for i, r := range req.Rows {
+		idx := i + 1
+		name := strings.TrimSpace(r.Name)
+		phone := strings.TrimSpace(r.Phone)
+		email := strings.TrimSpace(r.Email)
+		category := model.NormalizeGuestCategory(r.Category)
+
+		if name == "" {
+			result.Errors = append(result.Errors, ImportConfirmError{Index: idx, Errors: []string{"name is required"}})
 			continue
 		}
 
-		guestName := strings.TrimSpace(record[nameIdx])
-
-		var phone, category, note string
-		if phoneIdx >= 0 && phoneIdx < len(record) {
-			phone = strings.TrimSpace(record[phoneIdx])
-		}
-		if categoryIdx >= 0 && categoryIdx < len(record) {
-			category = strings.TrimSpace(record[categoryIdx])
-		}
-		if noteIdx >= 0 && noteIdx < len(record) {
-			note = strings.TrimSpace(record[noteIdx])
-		}
-
-		if s.isDuplicate(ctx, eventID, guestName, phone) {
-			result.Skipped++
+		key := contactKey(email, phone, name)
+		if seen[key] ||
+			(phone != "" && existingPhones[strings.ToLower(phone)]) ||
+			(name != "" && existingNames[strings.ToLower(name)]) {
+			result.Duplicates++
 			continue
 		}
 
@@ -323,21 +383,16 @@ func (s *Service) ImportCSV(ctx context.Context, userID uuid.UUID, eventID uuid.
 
 		guest := &model.Guest{
 			EventID:  eventID,
-			Name:     guestName,
+			Name:     name,
 			Phone:    phone,
 			Category: category,
-			Note:     note,
 			Token:    token,
 		}
-		if guest.Category == "" {
-			guest.Category = "family"
-		}
-
 		if err := s.guestRepo.Create(ctx, guest); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("row %d: %v", result.Total, err))
+			result.Errors = append(result.Errors, ImportConfirmError{Index: idx, Errors: []string{err.Error()}})
 			continue
 		}
-
+		seen[key] = true
 		result.Imported++
 	}
 
@@ -349,6 +404,77 @@ func (s *Service) ImportCSV(ctx context.Context, userID uuid.UUID, eventID uuid.
 	})
 
 	return result, nil
+}
+
+func candidates(def []string, override string) []string {
+	if override != "" {
+		return []string{override}
+	}
+	return def
+}
+
+func mappingVal(m *ImportMapping, field string) string {
+	if m == nil {
+		return ""
+	}
+	switch field {
+	case "name":
+		return m.Name
+	case "email":
+		return m.Email
+	case "phone":
+		return m.Phone
+	case "category":
+		return m.Category
+	}
+	return ""
+}
+
+func findColumn(header []string, names []string) int {
+	for _, n := range names {
+		for i, h := range header {
+			if strings.EqualFold(strings.TrimSpace(h), n) {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func contactKey(email, phone, name string) string {
+	e := strings.TrimSpace(strings.ToLower(email))
+	p := strings.TrimSpace(strings.ToLower(phone))
+	n := strings.TrimSpace(strings.ToLower(name))
+	if e != "" {
+		return "e:" + e
+	}
+	if p != "" {
+		return "p:" + p
+	}
+	return "n:" + n
+}
+
+func buildPreviewRow(record []string, index, nameIdx, emailIdx, phoneIdx, categoryIdx int) ImportPreviewRow {
+	get := func(i int) string {
+		if i >= 0 && i < len(record) {
+			return strings.TrimSpace(record[i])
+		}
+		return ""
+	}
+	row := ImportPreviewRow{
+		Index:    index,
+		Name:     get(nameIdx),
+		Email:    get(emailIdx),
+		Phone:    get(phoneIdx),
+		Category: model.NormalizeGuestCategory(get(categoryIdx)),
+	}
+	if row.Name == "" {
+		row.Status = "invalid"
+		row.Errors = append(row.Errors, "name is required")
+	} else {
+		row.Status = "valid"
+	}
+	return row
 }
 
 func (s *Service) checkGuestLimit(ctx context.Context, eventID uuid.UUID, userID uuid.UUID, newGuests int) error {
@@ -374,22 +500,6 @@ func (s *Service) checkGuestLimit(ctx context.Context, eventID uuid.UUID, userID
 	}
 
 	return nil
-}
-
-func (s *Service) isDuplicate(ctx context.Context, eventID uuid.UUID, name string, phone string) bool {
-	guests, _, _ := s.guestRepo.ListByEvent(ctx, eventID, 1, 10000)
-	nameLower := strings.ToLower(strings.TrimSpace(name))
-	for _, g := range guests {
-		if strings.ToLower(strings.TrimSpace(g.Name)) == nameLower {
-			if phone == "" || strings.TrimSpace(g.Phone) == "" {
-				return true
-			}
-			if strings.TrimSpace(g.Phone) == strings.TrimSpace(phone) {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func generateToken() string {

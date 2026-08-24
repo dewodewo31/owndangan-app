@@ -1,12 +1,33 @@
 package model
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
+
+// Guest category constants. Unknown/empty values normalize to GuestCategoryLainnya.
+const (
+	GuestCategoryKeluarga   = "keluarga"
+	GuestCategoryTeman      = "teman"
+	GuestCategoryRekanKerja = "rekan_kerja"
+	GuestCategoryTetangga   = "tetangga"
+	GuestCategoryLainnya    = "lainnya"
+)
+
+// NormalizeGuestCategory maps a raw category value to a known value, defaulting
+// unknown or empty input to GuestCategoryLainnya.
+func NormalizeGuestCategory(c string) string {
+	switch strings.ToLower(strings.TrimSpace(c)) {
+	case GuestCategoryKeluarga, GuestCategoryTeman, GuestCategoryRekanKerja, GuestCategoryTetangga, GuestCategoryLainnya:
+		return strings.ToLower(strings.TrimSpace(c))
+	default:
+		return GuestCategoryLainnya
+	}
+}
 
 type User struct {
 	ID           uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
@@ -165,7 +186,7 @@ type Guest struct {
 	EventID   uuid.UUID      `gorm:"type:uuid;not null;index" json:"event_id"`
 	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
 	Phone     string         `gorm:"type:varchar(20)" json:"phone,omitempty"`
-	Category  string         `gorm:"type:varchar(50);not null;default:'family'" json:"category"`
+	Category  string         `gorm:"type:varchar(32);not null;default:'lainnya'" json:"category"`
 	Note      string         `gorm:"type:text" json:"note,omitempty"`
 	Token     string         `gorm:"type:varchar(100);unique;not null" json:"-"`
 	CreatedAt time.Time      `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`

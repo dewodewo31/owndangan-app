@@ -16,11 +16,59 @@ type UpdateGuestRequest struct {
 	Note     *string `json:"note,omitempty" validate:"omitempty,max=1000"`
 }
 
-type ImportResult struct {
-	Total    int      `json:"total"`
-	Imported int      `json:"imported"`
-	Skipped  int      `json:"skipped"`
+// ImportMapping lets the client override which CSV header maps to each field.
+// An empty value falls back to the default header aliases.
+type ImportMapping struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	Category string `json:"category"`
+}
+
+type ImportPreviewRow struct {
+	Index    int      `json:"index"`
+	Name     string   `json:"name"`
+	Email    string   `json:"email"`
+	Phone    string   `json:"phone"`
+	Category string   `json:"category"`
+	Status   string   `json:"status"` // valid | duplicate | invalid
 	Errors   []string `json:"errors,omitempty"`
+}
+
+type ImportSummary struct {
+	Total     int `json:"total"`
+	Valid     int `json:"valid"`
+	Duplicate int `json:"duplicate"`
+	Invalid   int `json:"invalid"`
+}
+
+type ImportPreview struct {
+	Columns []string           `json:"columns"`
+	Rows    []ImportPreviewRow `json:"rows"`
+	Summary ImportSummary      `json:"summary"`
+}
+
+type ImportConfirmRow struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	Category string `json:"category"`
+}
+
+type ImportConfirmRequest struct {
+	Rows []ImportConfirmRow `json:"rows"`
+}
+
+type ImportConfirmError struct {
+	Index  int      `json:"index"`
+	Errors []string `json:"errors"`
+}
+
+type ImportConfirmResult struct {
+	Total      int                  `json:"total"`
+	Imported   int                  `json:"imported"`
+	Duplicates int                  `json:"duplicates"`
+	Errors     []ImportConfirmError `json:"errors"`
 }
 
 type GuestResponse struct {

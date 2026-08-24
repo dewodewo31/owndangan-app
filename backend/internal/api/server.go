@@ -218,6 +218,8 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 
 		r.Get("/e/{slug}", EventHandler.PublicView)
 
+		r.Get("/invitations/public", EventHandler.PublicList)
+
 		r.Post("/analytics/events", analyticsHandler.TrackEvent)
 
 		r.Route("/admin", func(r chi.Router) {

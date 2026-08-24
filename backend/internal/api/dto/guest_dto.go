@@ -9,14 +9,14 @@ import (
 type CreateGuestRequest struct {
 	Name     string `json:"name" validate:"required,max=255"`
 	Phone    string `json:"phone,omitempty" validate:"omitempty,phone_id"`
-	Category string `json:"category,omitempty" validate:"omitempty,oneof=family friend colleague other"`
+	Category string `json:"category,omitempty" validate:"omitempty,oneof=keluarga teman rekan_kerja tetangga lainnya"`
 	Note     string `json:"note,omitempty" validate:"max=1000"`
 }
 
 type UpdateGuestRequest struct {
 	Name     *string `json:"name,omitempty" validate:"omitempty,max=255"`
 	Phone    *string `json:"phone,omitempty" validate:"omitempty,phone_id"`
-	Category *string `json:"category,omitempty" validate:"omitempty,oneof=family friend colleague other"`
+	Category *string `json:"category,omitempty" validate:"omitempty,oneof=keluarga teman rekan_kerja tetangga lainnya"`
 	Note     *string `json:"note,omitempty" validate:"omitempty,max=1000"`
 }
 

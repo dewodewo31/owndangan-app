@@ -1,8 +1,10 @@
 package handler
 
 import (
-	"io"
+	"encoding/json"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/owndangan/backend/internal/api/middleware"
@@ -120,7 +122,7 @@ func (h *GuestHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]string{"message": "Guest deleted"}, r)
 }
 
-func (h *GuestHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
+func (h *GuestHandler) ImportPreview(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r.Context())
 	eventID, err := parseUUID(r, "eventID")
 	if err != nil {
@@ -128,19 +130,59 @@ func (h *GuestHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, _, err := r.FormFile("file")
+	file, header, err := r.FormFile("file")
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, "INVALID_FILE", "CSV file is required", r)
 		return
 	}
 	defer file.Close()
 
-	result, err := h.guestSvc.ImportCSV(r.Context(), userID, eventID, io.Reader(file))
+	const maxSize = 5 << 20
+	if header.Size > maxSize {
+		response.Error(w, http.StatusBadRequest, "FILE_TOO_LARGE", "File exceeds the 5MB limit", r)
+		return
+	}
+
+	if ext := strings.ToLower(filepath.Ext(header.Filename)); ext != ".csv" {
+		response.Error(w, http.StatusBadRequest, "UNSUPPORTED_FILE", "Only CSV files are supported (xlsx import is not available)", r)
+		return
+	}
+
+	var mapping *guest.ImportMapping
+	if mv := r.FormValue("mapping"); mv != "" {
+		if err := json.Unmarshal([]byte(mv), &mapping); err != nil {
+			response.Error(w, http.StatusBadRequest, "INVALID_MAPPING", "mapping must be valid JSON", r)
+			return
+		}
+	}
+
+	preview, err := h.guestSvc.PreviewImport(r.Context(), userID, eventID, file, mapping)
 	if err != nil {
 		response.FromError(w, err, r)
 		return
 	}
+	response.JSON(w, http.StatusOK, preview, r)
+}
 
+func (h *GuestHandler) ImportConfirm(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	eventID, err := parseUUID(r, "eventID")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+
+	var req guest.ImportConfirmRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_BODY", "Invalid JSON body", r)
+		return
+	}
+
+	result, err := h.guestSvc.ConfirmImport(r.Context(), userID, eventID, req)
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
 	response.JSON(w, http.StatusOK, result, r)
 }
 
@@ -191,7 +233,8 @@ func (h *GuestHandler) RegisterRoutes(r chi.Router, authRequired func(http.Handl
 		r.Use(authRequired)
 		r.Post("/", h.Create)
 		r.Get("/", h.List)
-		r.Post("/import", h.ImportCSV)
+		r.Post("/import", h.ImportPreview)
+		r.Post("/import/confirm", h.ImportConfirm)
 		r.Get("/deleted", h.ListDeleted)
 		r.Get("/{guestID}", h.GetByID)
 		r.Put("/{guestID}", h.Update)
