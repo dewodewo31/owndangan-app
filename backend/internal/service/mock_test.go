@@ -2,10 +2,14 @@ package service_test
 
 import (
 	"context"
+	"crypto/sha512"
+	"encoding/hex"
 	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	midtrans "github.com/midtrans/midtrans-go"
+	"github.com/midtrans/midtrans-go/snap"
 	"github.com/owndangan/backend/internal/model"
 	"github.com/owndangan/backend/internal/repository"
 	"gorm.io/gorm"
@@ -197,6 +201,11 @@ func (m *mockSubscriptionRepo) GetActiveByUserID(ctx context.Context, userID uui
 }
 
 func (m *mockSubscriptionRepo) GetByTransactionID(ctx context.Context, txnID uuid.UUID) (*model.Subscription, error) {
+	for _, s := range m.subs {
+		if s.TransactionID != nil && *s.TransactionID == txnID {
+			return s, nil
+		}
+	}
 	return nil, errors.New("not found")
 }
 
@@ -264,6 +273,15 @@ func (m *mockTransactionRepo) GetByOrderID(ctx context.Context, orderID string) 
 	return nil, nil
 }
 
+func (m *mockTransactionRepo) GetPendingByUserAndPackage(ctx context.Context, userID uuid.UUID, packageID uuid.UUID) (*model.Transaction, error) {
+	for _, t := range m.txns {
+		if t.UserID == userID && t.PackageID == packageID && t.Status == "pending" {
+			return t, nil
+		}
+	}
+	return nil, nil
+}
+
 func (m *mockTransactionRepo) Update(ctx context.Context, txn *model.Transaction) error {
 	for i, t := range m.txns {
 		if t.ID == txn.ID {
@@ -313,4 +331,24 @@ func (m *mockWebhookIdempotencyRepo) MarkProcessed(ctx context.Context, requestI
 	}
 	m.processed[requestID] = true
 	return nil
+}
+
+// testMidtransServerKey must match the key used by generateSignature in
+// payment_test.go so the mock verifies the same signatures the tests forge.
+const testMidtransServerKey = "test-server-key"
+
+type mockMidtransClient struct{}
+
+func (m *mockMidtransClient) CreateSnapTransaction(orderID string, grossAmount int64, customer *midtrans.CustomerDetails, items *[]midtrans.ItemDetails) (*snap.Response, error) {
+	return &snap.Response{
+		Token:       "test-snap-token",
+		RedirectURL: "https://app.sandbox.midtrans.com/snap/v3/redirection/test-snap-token",
+	}, nil
+}
+
+func (m *mockMidtransClient) VerifySignature(orderID, statusCode, grossAmount, signatureKey string) bool {
+	hashInput := orderID + statusCode + grossAmount + testMidtransServerKey
+	h := sha512.Sum512([]byte(hashInput))
+	expected := hex.EncodeToString(h[:])
+	return expected == signatureKey
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/owndangan/backend/internal/pkg/pagination"
 	"github.com/owndangan/backend/internal/pkg/slug"
 	"github.com/owndangan/backend/internal/pkg/storage"
+	"github.com/owndangan/backend/internal/pkg/cache"
 	"github.com/owndangan/backend/internal/repository"
 	"github.com/owndangan/backend/internal/service/entitlement"
 	"gorm.io/datatypes"
@@ -38,8 +39,9 @@ type EventService struct {
 	musicRepo        repository.MusicRepository
 	galleryPhotoRepo repository.GalleryPhotoRepository
 	auditRepo        repository.AuditLogRepository
-	analyticsRepo    repository.AnalyticsEventRepository
+	analyticsRepo     repository.AnalyticsEventRepository
 	storage          Storage
+	publicCache      *cache.TTLCache
 }
 
 type Storage interface {
@@ -74,6 +76,7 @@ func NewEventService(db *gorm.DB, eventRepo repository.EventRepository, sectionR
 		auditRepo:        auditRepo,
 		analyticsRepo:    analyticsRepo,
 		storage:          storage,
+		publicCache:      cache.NewTTL(5 * time.Minute),
 	}
 }
 
@@ -251,6 +254,7 @@ func (s *EventService) Update(ctx context.Context, userID uuid.UUID, eventID uui
 		return nil, err
 	}
 
+	s.invalidatePublic(event.Slug)
 	return s.toResponse(ctx, event), nil
 }
 
@@ -314,6 +318,8 @@ func (s *EventService) Publish(ctx context.Context, userID uuid.UUID, eventID uu
 		return nil, err
 	}
 
+	s.invalidatePublic(event.Slug)
+
 	_ = s.auditRepo.Create(ctx, &model.AuditLog{
 		UserID:     &event.UserID,
 		Action:     "event.published",
@@ -349,6 +355,7 @@ func (s *EventService) Unpublish(ctx context.Context, userID uuid.UUID, eventID 
 		return err
 	}
 
+	s.invalidatePublic(event.Slug)
 	return nil
 }
 
@@ -378,12 +385,19 @@ func (s *EventService) GetPublicBySlug(ctx context.Context, slug string) (*dto.P
 		return nil, errors.ErrNotFound
 	}
 
+	// Side effects always run so analytics/view counts stay accurate even on a
+	// cache hit.
 	_ = s.eventRepo.IncrementViewCount(ctx, slug)
-
 	_ = s.analyticsRepo.Create(ctx, &model.AnalyticsEvent{
 		EventID:   &event.ID,
 		EventType: "page_view",
 	})
+
+	if cached, ok := s.publicCache.Get(slug); ok {
+		if resp, ok := cached.(*dto.PublicEventResponse); ok {
+			return resp, nil
+		}
+	}
 
 	section := event.Sections
 	if section == nil {
@@ -470,7 +484,7 @@ func (s *EventService) GetPublicBySlug(ctx context.Context, slug string) (*dto.P
 		}
 	}
 
-	return &dto.PublicEventResponse{
+	resp := &dto.PublicEventResponse{
 		Event: dto.PublicEventDetail{
 			ID:               event.ID,
 			Title:            event.Title,
@@ -496,7 +510,17 @@ func (s *EventService) GetPublicBySlug(ctx context.Context, slug string) (*dto.P
 		Guestbook:   guestbook,
 		DigitalGift: digitalGift,
 		LoveStories: loveStories,
-	}, nil
+	}
+	s.publicCache.Set(slug, resp)
+	return resp, nil
+}
+
+// invalidatePublic drops the cached public invitation for a slug. Called after
+// any mutation that changes the public payload.
+func (s *EventService) invalidatePublic(slug string) {
+	if slug != "" {
+		s.publicCache.Delete(slug)
+	}
 }
 
 func (s *EventService) checkEventLimit(ctx context.Context, userID uuid.UUID) error {
@@ -610,6 +634,7 @@ func (s *EventService) AssignTemplate(ctx context.Context, userID uuid.UUID, eve
 	if err := s.eventRepo.Update(ctx, event); err != nil {
 		return nil, err
 	}
+	s.invalidatePublic(event.Slug)
 	return s.toResponse(ctx, event), nil
 }
 
@@ -729,6 +754,7 @@ func (s *EventService) UpdateSections(ctx context.Context, userID uuid.UUID, eve
 	if err := s.sectionRepo.Update(ctx, sec); err != nil {
 		return nil, err
 	}
+	s.invalidatePublic(event.Slug)
 	return s.toResponse(ctx, event), nil
 }
 
@@ -758,7 +784,8 @@ func (s *EventService) GetDigitalGift(ctx context.Context, userID uuid.UUID, eve
 }
 
 func (s *EventService) UpdateDigitalGift(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, req dto.UpdateDigitalGiftRequest) (*dto.DigitalGiftResponse, error) {
-	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+	event, err := s.ensureOwner(ctx, userID, eventID)
+	if err != nil {
 		return nil, err
 	}
 	resolver := s.resolveEntitlement(ctx, userID)
@@ -786,6 +813,7 @@ func (s *EventService) UpdateDigitalGift(ctx context.Context, userID uuid.UUID, 
 	if err := s.digitalRepo.Update(ctx, gift); err != nil {
 		return nil, err
 	}
+	s.invalidatePublic(event.Slug)
 	return s.digitalGiftToResponse(gift), nil
 }
 
@@ -857,6 +885,7 @@ func (s *EventService) UploadGallery(ctx context.Context, userID uuid.UUID, even
 		_ = s.storage.Delete(ctx, key)
 		return nil, err
 	}
+	s.invalidatePublic(event.Slug)
 	return &dto.GalleryPhotoResponse{
 		ID:        photo.ID,
 		ImageURL:  photo.ImageURL,
@@ -881,21 +910,27 @@ func (s *EventService) DeleteGallery(ctx context.Context, userID uuid.UUID, even
 		return err
 	}
 	_ = s.storage.Delete(ctx, filepath.Base(photo.ImageURL))
+	s.invalidatePublic(event.Slug)
 	return nil
 }
 
 func (s *EventService) ReorderGallery(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, req dto.ReorderGalleryRequest) error {
-	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+	event, err := s.ensureOwner(ctx, userID, eventID)
+	if err != nil {
 		return err
 	}
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, p := range req.Photos {
 			if err := s.galleryPhotoRepo.WithTx(tx).UpdateSortOrder(ctx, p.ID, p.SortOrder); err != nil {
 				return err
 			}
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	s.invalidatePublic(event.Slug)
+	return nil
 }
 
 func (s *EventService) GetMusic(ctx context.Context, userID uuid.UUID, eventID uuid.UUID) (*dto.MusicResponse, error) {
@@ -940,7 +975,8 @@ func (s *EventService) GetMusic(ctx context.Context, userID uuid.UUID, eventID u
 }
 
 func (s *EventService) UploadMusic(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, file io.Reader, filename, title string) (*dto.MusicResponse, error) {
-	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+	event, err := s.ensureOwner(ctx, userID, eventID)
+	if err != nil {
 		return nil, err
 	}
 	resolver := s.resolveEntitlement(ctx, userID)
@@ -974,6 +1010,7 @@ func (s *EventService) UploadMusic(ctx context.Context, userID uuid.UUID, eventI
 	if err := s.assignMusic(ctx, eventID, music.ID); err != nil {
 		return nil, err
 	}
+	s.invalidatePublic(event.Slug)
 	return s.musicToResponse(music), nil
 }
 
@@ -994,7 +1031,8 @@ func (s *EventService) ListMusicPresets(ctx context.Context, userID uuid.UUID) (
 }
 
 func (s *EventService) AssignPresetMusic(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, presetID uuid.UUID) (*dto.MusicResponse, error) {
-	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+	event, err := s.ensureOwner(ctx, userID, eventID)
+	if err != nil {
 		return nil, err
 	}
 	resolver := s.resolveEntitlement(ctx, userID)
@@ -1011,13 +1049,15 @@ func (s *EventService) AssignPresetMusic(ctx context.Context, userID uuid.UUID, 
 	if err := s.assignMusic(ctx, eventID, music.ID); err != nil {
 		return nil, err
 	}
+	s.invalidatePublic(event.Slug)
 	return s.musicToResponse(music), nil
 }
 
 // RemoveMusic detaches and deletes the currently selected music for an event,
 // effectively disabling background music. Safe to call when no music is set.
 func (s *EventService) RemoveMusic(ctx context.Context, userID uuid.UUID, eventID uuid.UUID) error {
-	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+	event, err := s.ensureOwner(ctx, userID, eventID)
+	if err != nil {
 		return err
 	}
 	sec, err := s.sectionRepo.GetByEventID(ctx, eventID)
@@ -1035,7 +1075,11 @@ func (s *EventService) RemoveMusic(ctx context.Context, userID uuid.UUID, eventI
 		return err
 	}
 	sec.MusicID = nil
-	return s.sectionRepo.Update(ctx, sec)
+	if err := s.sectionRepo.Update(ctx, sec); err != nil {
+		return err
+	}
+	s.invalidatePublic(event.Slug)
+	return nil
 }
 
 func (s *EventService) assignMusic(ctx context.Context, eventID, musicID uuid.UUID) error {
@@ -1092,7 +1136,8 @@ func (s *EventService) ListLoveStories(ctx context.Context, userID, eventID uuid
 }
 
 func (s *EventService) CreateLoveStory(ctx context.Context, userID, eventID uuid.UUID, req dto.CreateLoveStoryRequest) (*dto.LoveStoryDTO, error) {
-	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+	event, err := s.ensureOwner(ctx, userID, eventID)
+	if err != nil {
 		return nil, err
 	}
 	if req.SortOrder == 0 {
@@ -1118,11 +1163,13 @@ func (s *EventService) CreateLoveStory(ctx context.Context, userID, eventID uuid
 		EntityID:   &story.ID,
 	})
 	resp := s.loveStoryToResponse(story)
+	s.invalidatePublic(event.Slug)
 	return &resp, nil
 }
 
 func (s *EventService) UpdateLoveStory(ctx context.Context, userID, eventID, storyID uuid.UUID, req dto.UpdateLoveStoryRequest) (*dto.LoveStoryDTO, error) {
-	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+	event, err := s.ensureOwner(ctx, userID, eventID)
+	if err != nil {
 		return nil, err
 	}
 	story, err := s.loveStoryRepo.GetByID(ctx, storyID)
@@ -1151,11 +1198,13 @@ func (s *EventService) UpdateLoveStory(ctx context.Context, userID, eventID, sto
 		return nil, err
 	}
 	resp := s.loveStoryToResponse(story)
+	s.invalidatePublic(event.Slug)
 	return &resp, nil
 }
 
 func (s *EventService) DeleteLoveStory(ctx context.Context, userID, eventID, storyID uuid.UUID) error {
-	if _, err := s.ensureOwner(ctx, userID, eventID); err != nil {
+	event, err := s.ensureOwner(ctx, userID, eventID)
+	if err != nil {
 		return err
 	}
 	story, err := s.loveStoryRepo.GetByID(ctx, storyID)
@@ -1171,6 +1220,7 @@ func (s *EventService) DeleteLoveStory(ctx context.Context, userID, eventID, sto
 		EntityType: "love_story",
 		EntityID:   &storyID,
 	})
+	s.invalidatePublic(event.Slug)
 	return nil
 }
 

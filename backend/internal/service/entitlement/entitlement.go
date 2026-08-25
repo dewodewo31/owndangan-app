@@ -1,9 +1,12 @@
 package entitlement
 
 import (
+	"context"
 	"encoding/json"
 
+	"github.com/google/uuid"
 	"github.com/owndangan/backend/internal/model"
+	"github.com/owndangan/backend/internal/repository"
 )
 
 type Feature string
@@ -139,6 +142,38 @@ func (r *Resolver) GuestbookQR() bool {
 
 func (r *Resolver) RSVPExport() bool {
 	return r.resolveBool(RSVPExport)
+}
+
+// IsProTier reports whether the resolved package is a Pro-tier plan (premium
+// or all-access). Used to gate Pro-only features like xlsx RSVP export and QR
+// guest check-in.
+func (r *Resolver) IsProTier() bool {
+	if r.pkg == nil {
+		return false
+	}
+	switch r.pkg.Code {
+	case "premium", "all", "pro":
+		return true
+	}
+	return false
+}
+
+// ResolveForUser builds a Resolver for a user's active subscription, falling
+// back to the free package when no active subscription exists.
+func ResolveForUser(ctx context.Context, subRepo repository.SubscriptionRepository, pkgRepo repository.PackageRepository, userID uuid.UUID) *Resolver {
+	sub, err := subRepo.GetActiveByUserID(ctx, userID)
+	if err != nil || sub == nil {
+		freePkg, ferr := pkgRepo.GetByCode(ctx, "free")
+		if ferr != nil || freePkg == nil {
+			return NewResolver(nil)
+		}
+		return NewResolver(freePkg)
+	}
+	pkg, err := pkgRepo.GetByID(ctx, sub.PackageID)
+	if err != nil || pkg == nil {
+		return NewResolver(nil)
+	}
+	return NewResolver(pkg)
 }
 
 func (r *Resolver) DigitalGiftQRIS() bool {

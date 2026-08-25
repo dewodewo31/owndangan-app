@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/owndangan/backend/internal/model"
@@ -500,6 +501,77 @@ func (s *Service) checkGuestLimit(ctx context.Context, eventID uuid.UUID, userID
 	}
 
 	return nil
+}
+
+// CheckIn marks a guest attended by their invitation token. It is token-based
+// (no login) and enforces the Pro-tier gate server-side. Idempotent: a guest
+// already marked attended returns success without error.
+func (s *Service) CheckIn(ctx context.Context, token string) (*model.Guest, error) {
+	guest, err := s.guestRepo.GetByToken(ctx, token)
+	if err != nil || guest == nil {
+		return nil, errors.ErrNotFound
+	}
+
+	resolver, err := s.resolveEventTier(ctx, guest.EventID)
+	if err != nil {
+		return nil, err
+	}
+	if !resolver.IsProTier() {
+		return nil, errors.ErrForbidden
+	}
+
+	if guest.AttendedAt != nil {
+		return guest, nil
+	}
+
+	now := time.Now()
+	guest.AttendedAt = &now
+	if err := s.guestRepo.Update(ctx, guest); err != nil {
+		return nil, fmt.Errorf("check-in: %w", err)
+	}
+
+	_ = s.auditRepo.Create(ctx, &model.AuditLog{
+		Action:     "guest.checked_in",
+		EntityType: "guest",
+		EntityID:   &guest.ID,
+	})
+
+	return guest, nil
+}
+
+// CheckInStatus returns the owner-only check-in overview for an event.
+func (s *Service) CheckInStatus(ctx context.Context, userID uuid.UUID, eventID uuid.UUID) ([]GuestCheckInStatus, error) {
+	event, err := s.eventRepo.GetByID(ctx, eventID)
+	if err != nil || event == nil {
+		return nil, errors.ErrNotFound
+	}
+	if event.UserID != userID {
+		return nil, errors.ErrForbidden
+	}
+
+	guests, _, err := s.guestRepo.ListByEvent(ctx, eventID, 1, 100000)
+	if err != nil {
+		return nil, err
+	}
+
+	status := make([]GuestCheckInStatus, 0, len(guests))
+	for _, g := range guests {
+		st := GuestCheckInStatus{ID: g.ID.String(), Name: g.Name}
+		if g.AttendedAt != nil {
+			st.Attended = true
+			st.AttendedAt = g.AttendedAt.Format("2006-01-02T15:04:05Z")
+		}
+		status = append(status, st)
+	}
+	return status, nil
+}
+
+func (s *Service) resolveEventTier(ctx context.Context, eventID uuid.UUID) (*entitlement.Resolver, error) {
+	event, err := s.eventRepo.GetByID(ctx, eventID)
+	if err != nil || event == nil {
+		return nil, errors.ErrNotFound
+	}
+	return entitlement.ResolveForUser(ctx, s.subRepo, s.pkgRepo, event.UserID), nil
 }
 
 func generateToken() string {

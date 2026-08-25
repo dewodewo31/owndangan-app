@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/owndangan/backend/internal/api"
 	"github.com/owndangan/backend/internal/config"
 	"github.com/owndangan/backend/internal/database"
@@ -41,7 +40,7 @@ func setupAdminTestServer(t *testing.T) {
 		&model.User{}, &model.RefreshToken{}, &model.Package{}, &model.Transaction{},
 		&model.Subscription{}, &model.Template{}, &model.Music{}, &model.Event{},
 		&model.EventSection{}, &model.Guest{}, &model.RSVP{}, &model.GuestbookMessage{},
-		&model.DigitalGift{}, &model.GalleryPhoto{}, &model.AuditLog{},
+		&model.DigitalGift{}, &model.GalleryPhoto{}, &model.AuditLog{}, &model.LoveStory{},
 		&model.AnalyticsEvent{}, &model.WebhookIdempotency{},
 	)
 
@@ -198,10 +197,12 @@ func TestAdmin_ListTransactions_Filter(t *testing.T) {
 	token := getAdminToken(t)
 
 	db := openAdminTestDB(t)
+	user := &model.User{Name: "Filter User", Email: "filteruser@example.com", PasswordHash: "hashed"}
+	require.NoError(t, db.Create(user).Error)
 	pkg := &model.Package{Name: "FilterPkg", Code: "filterpkg", Price: 1000, IsActive: true}
 	require.NoError(t, db.Create(pkg).Error)
 	txn := &model.Transaction{
-		UserID:      uuid.New(),
+		UserID:      user.ID,
 		PackageID:   pkg.ID,
 		OrderID:     "ORD-FILTER-1",
 		GrossAmount: 1000,

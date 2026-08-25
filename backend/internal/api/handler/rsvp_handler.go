@@ -135,3 +135,25 @@ func (h *RSVPHandler) RegisterRoutes(r chi.Router, authRequired func(http.Handle
 		r.Get("/{eventID}/export", h.Export)
 	})
 }
+
+// ExportByEvent streams the RSVP export for an event, supporting ?format=csv
+// (all tiers) and ?format=xlsx (Pro tier only).
+func (h *RSVPHandler) ExportByEvent(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	eventID, err := parseUUID(r, "id")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+
+	result, err := h.rsvpSvc.Export(r.Context(), userID, eventID, r.URL.Query().Get("format"))
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", result.ContentType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", result.Filename))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(result.Data)
+}

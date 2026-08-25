@@ -228,6 +228,42 @@ func (h *GuestHandler) ListDeleted(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, result, r)
 }
 
+// CheckIn marks a guest attended using their invitation token. Token-based and
+// public (no login); the Pro-tier gate is enforced server-side in the service.
+func (h *GuestHandler) CheckIn(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Token == "" {
+		response.Error(w, http.StatusBadRequest, "INVALID_BODY", "token is required", r)
+		return
+	}
+
+	g, err := h.guestSvc.CheckIn(r.Context(), req.Token)
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+	response.JSON(w, http.StatusOK, guest.ToGuestResponse(g), r)
+}
+
+// CheckInStatus returns the owner-only check-in overview for an event.
+func (h *GuestHandler) CheckInStatus(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	eventID, err := parseUUID(r, "eventID")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid event ID", r)
+		return
+	}
+
+	status, err := h.guestSvc.CheckInStatus(r.Context(), userID, eventID)
+	if err != nil {
+		response.FromError(w, err, r)
+		return
+	}
+	response.JSON(w, http.StatusOK, status, r)
+}
+
 func (h *GuestHandler) RegisterRoutes(r chi.Router, authRequired func(http.Handler) http.Handler) {
 	r.Group(func(r chi.Router) {
 		r.Use(authRequired)
@@ -236,6 +272,7 @@ func (h *GuestHandler) RegisterRoutes(r chi.Router, authRequired func(http.Handl
 		r.Post("/import", h.ImportPreview)
 		r.Post("/import/confirm", h.ImportConfirm)
 		r.Get("/deleted", h.ListDeleted)
+		r.Get("/check-in/status", h.CheckInStatus)
 		r.Get("/{guestID}", h.GetByID)
 		r.Put("/{guestID}", h.Update)
 		r.Delete("/{guestID}", h.Delete)

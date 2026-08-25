@@ -188,10 +188,11 @@ type Guest struct {
 	Phone     string         `gorm:"type:varchar(20)" json:"phone,omitempty"`
 	Category  string         `gorm:"type:varchar(32);not null;default:'lainnya'" json:"category"`
 	Note      string         `gorm:"type:text" json:"note,omitempty"`
-	Token     string         `gorm:"type:varchar(100);unique;not null" json:"-"`
-	CreatedAt time.Time      `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
-	UpdatedAt time.Time      `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	Token      string         `gorm:"type:varchar(100);unique;not null" json:"-"`
+	AttendedAt *time.Time     `gorm:"type:timestamptz" json:"attended_at,omitempty"`
+	CreatedAt  time.Time      `gorm:"type:timestamptz;not null;autoCreateTime" json:"created_at"`
+	UpdatedAt  time.Time      `gorm:"type:timestamptz;not null;autoUpdateTime" json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 
 	RSVP *RSVP `gorm:"foreignKey:GuestID" json:"rsvp,omitempty"`
 }

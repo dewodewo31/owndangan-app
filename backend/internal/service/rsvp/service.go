@@ -1,8 +1,11 @@
 package rsvp
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,6 +14,8 @@ import (
 	"github.com/owndangan/backend/internal/pkg/errors"
 	"github.com/owndangan/backend/internal/repository"
 	"github.com/owndangan/backend/internal/service/email"
+	"github.com/owndangan/backend/internal/service/entitlement"
+	"github.com/xuri/excelize/v2"
 )
 
 type EmailSender interface {
@@ -22,18 +27,23 @@ type Service struct {
 	guestRepo repository.GuestRepository
 	eventRepo repository.EventRepository
 	userRepo  repository.UserRepository
+	subRepo   repository.SubscriptionRepository
+	pkgRepo   repository.PackageRepository
 	auditRepo repository.AuditLogRepository
 	emailSvc  EmailSender
 }
 
 func NewService(rsvpRepo repository.RSVPRepository, guestRepo repository.GuestRepository,
 	eventRepo repository.EventRepository, userRepo repository.UserRepository,
+	subRepo repository.SubscriptionRepository, pkgRepo repository.PackageRepository,
 	auditRepo repository.AuditLogRepository, emailSvc EmailSender) *Service {
 	return &Service{
 		rsvpRepo:  rsvpRepo,
 		guestRepo: guestRepo,
 		eventRepo: eventRepo,
 		userRepo:  userRepo,
+		subRepo:   subRepo,
+		pkgRepo:   pkgRepo,
 		auditRepo: auditRepo,
 		emailSvc:  emailSvc,
 	}
@@ -143,6 +153,120 @@ func (s *Service) ListForExport(ctx context.Context, userID uuid.UUID, eventID u
 	}
 
 	return s.rsvpRepo.ListExportRows(ctx, eventID)
+}
+
+// ExportResult is the rendered export payload ready to stream to the client.
+type ExportResult struct {
+	ContentType string
+	Filename    string
+	Data        []byte
+}
+
+// Export renders the RSVP export for an event. CSV is available on all tiers.
+// XLSX requires a Pro-tier subscription and returns ErrForbidden otherwise.
+func (s *Service) Export(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, format string) (*ExportResult, error) {
+	event, err := s.eventRepo.GetByID(ctx, eventID)
+	if err != nil || event == nil {
+		return nil, errors.ErrNotFound
+	}
+	if event.UserID != userID {
+		return nil, errors.ErrForbidden
+	}
+
+	if format == "" {
+		format = "csv"
+	}
+	format = strings.ToLower(format)
+
+	rows, err := s.rsvpRepo.ListExportRows(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	if format == "xlsx" {
+		resolver, err := s.resolveEventTier(ctx, eventID)
+		if err != nil {
+			return nil, err
+		}
+		if !resolver.IsProTier() {
+			return nil, errors.ErrForbidden
+		}
+		data, err := buildXLSX(rows)
+		if err != nil {
+			return nil, fmt.Errorf("build xlsx: %w", err)
+		}
+		return &ExportResult{
+			ContentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+			Filename:    fmt.Sprintf("rsvp-%s.xlsx", eventID.String()[:8]),
+			Data:        data,
+		}, nil
+	}
+
+	if format != "csv" {
+		return nil, fmt.Errorf("%w: unsupported format %q", errors.ErrInvalidInput, format)
+	}
+
+	var buf bytes.Buffer
+	cw := csv.NewWriter(&buf)
+	_ = cw.Write([]string{"nama", "telepon", "status_rsvp", "kehadiran", "jumlah_tamu", "waktu_kirim"})
+	for _, row := range rows {
+		_ = cw.Write([]string{
+			row.GuestName,
+			row.GuestPhone,
+			"responded",
+			attendanceLabel(row.Attendance),
+			strconv.Itoa(row.GuestCount),
+			row.SubmittedAt.Format(time.RFC3339),
+		})
+	}
+	cw.Flush()
+	if err := cw.Error(); err != nil {
+		return nil, fmt.Errorf("write csv: %w", err)
+	}
+	return &ExportResult{
+		ContentType: "text/csv; charset=utf-8",
+		Filename:    fmt.Sprintf("rsvp-%s.csv", eventID.String()[:8]),
+		Data:        buf.Bytes(),
+	}, nil
+}
+
+func buildXLSX(rows []repository.RSVPExportRow) ([]byte, error) {
+	f := excelize.NewFile()
+	const sheet = "RSVP"
+	f.SetSheetName("Sheet1", sheet)
+	headers := []string{"Nama", "Telepon", "Status RSVP", "Kehadiran", "Jumlah Tamu", "Waktu Kirim"}
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+	}
+	for i, row := range rows {
+		r := i + 2
+		values := []interface{}{
+			row.GuestName,
+			row.GuestPhone,
+			"responded",
+			attendanceLabel(row.Attendance),
+			row.GuestCount,
+			row.SubmittedAt.Format(time.RFC3339),
+		}
+		for j, v := range values {
+			cell, _ := excelize.CoordinatesToCellName(j+1, r)
+			f.SetCellValue(sheet, cell, v)
+		}
+	}
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (s *Service) resolveEventTier(ctx context.Context, eventID uuid.UUID) (*entitlement.Resolver, error) {
+	event, err := s.eventRepo.GetByID(ctx, eventID)
+	if err != nil || event == nil {
+		return nil, errors.ErrNotFound
+	}
+	return entitlement.ResolveForUser(ctx, s.subRepo, s.pkgRepo, event.UserID), nil
 }
 
 func attendanceLabel(attendance string) string {

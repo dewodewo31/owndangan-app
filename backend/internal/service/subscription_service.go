@@ -74,6 +74,12 @@ func (s *SubscriptionService) ActivateOnSettlement(ctx context.Context, transact
 		return nil, fmt.Errorf("transaction not settled: %w", errors.ErrConflict)
 	}
 
+	// Idempotency guard: a repeated settlement webhook (same transaction) must
+	// not create a second subscription. Return the existing one if present.
+	if existing, _ := s.subRepo.GetByTransactionID(ctx, txn.ID); existing != nil {
+		return existing, nil
+	}
+
 	pkg, err := s.pkgRepo.GetByID(ctx, txn.PackageID)
 	if err != nil || pkg == nil {
 		return nil, fmt.Errorf("package not found: %w", errors.ErrNotFound)

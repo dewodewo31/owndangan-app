@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ type TransactionRepository interface {
 	Create(ctx context.Context, txn *model.Transaction) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Transaction, error)
 	GetByOrderID(ctx context.Context, orderID string) (*model.Transaction, error)
+	GetPendingByUserAndPackage(ctx context.Context, userID uuid.UUID, packageID uuid.UUID) (*model.Transaction, error)
 	Update(ctx context.Context, txn *model.Transaction) error
 	ListByUserID(ctx context.Context, userID uuid.UUID, page, perPage int) ([]model.Transaction, int64, error)
 	ListAll(ctx context.Context, page, perPage int, status, packageID string) ([]model.Transaction, int64, error)
@@ -54,6 +56,22 @@ func (r *transactionRepo) GetByOrderID(ctx context.Context, orderID string) (*mo
 
 func (r *transactionRepo) Update(ctx context.Context, txn *model.Transaction) error {
 	return r.db.WithContext(ctx).Save(txn).Error
+}
+
+func (r *transactionRepo) GetPendingByUserAndPackage(ctx context.Context, userID uuid.UUID, packageID uuid.UUID) (*model.Transaction, error) {
+	var txn model.Transaction
+	err := r.db.WithContext(ctx).
+		Preload("Package").
+		Where("user_id = ? AND package_id = ? AND status = ?", userID, packageID, "pending").
+		Order("created_at DESC").
+		First(&txn).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &txn, nil
 }
 
 func (r *transactionRepo) ListByUserID(ctx context.Context, userID uuid.UUID, page, perPage int) ([]model.Transaction, int64, error) {

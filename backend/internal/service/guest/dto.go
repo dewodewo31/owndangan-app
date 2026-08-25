@@ -72,19 +72,20 @@ type ImportConfirmResult struct {
 }
 
 type GuestResponse struct {
-	ID        string `json:"id"`
-	EventID   string `json:"event_id"`
-	Name      string `json:"name"`
-	Phone     string `json:"phone,omitempty"`
-	Category  string `json:"category"`
-	Note      string `json:"note,omitempty"`
-	Token     string `json:"token,omitempty"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	ID         string `json:"id"`
+	EventID    string `json:"event_id"`
+	Name       string `json:"name"`
+	Phone      string `json:"phone,omitempty"`
+	Category   string `json:"category"`
+	Note       string `json:"note,omitempty"`
+	Token      string `json:"token,omitempty"`
+	AttendedAt string `json:"attended_at,omitempty"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
 }
 
 func ToGuestResponse(guest *model.Guest) GuestResponse {
-	return GuestResponse{
+	resp := GuestResponse{
 		ID:        guest.ID.String(),
 		EventID:   guest.EventID.String(),
 		Name:      guest.Name,
@@ -95,4 +96,16 @@ func ToGuestResponse(guest *model.Guest) GuestResponse {
 		CreatedAt: guest.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		UpdatedAt: guest.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
+	if guest.AttendedAt != nil {
+		resp.AttendedAt = guest.AttendedAt.Format("2006-01-02T15:04:05Z")
+	}
+	return resp
+}
+
+// GuestCheckInStatus is the owner-only view of a guest's check-in state.
+type GuestCheckInStatus struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Attended   bool   `json:"attended"`
+	AttendedAt string `json:"attended_at,omitempty"`
 }

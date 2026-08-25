@@ -2,17 +2,18 @@ package service
 
 import (
 	"context"
-	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	midtrans "github.com/midtrans/midtrans-go"
+	"github.com/midtrans/midtrans-go/snap"
 	"github.com/owndangan/backend/internal/api/dto"
-	"github.com/owndangan/backend/internal/config"
 	"github.com/owndangan/backend/internal/model"
 	"github.com/owndangan/backend/internal/pkg/errors"
 	"github.com/owndangan/backend/internal/repository"
@@ -23,13 +24,21 @@ type EmailSender interface {
 	SendAsync(to, subject, htmlBody string)
 }
 
+// MidtransClient is the minimal surface of the Midtrans SDK the payment
+// service depends on. It keeps the service testable without a second provider
+// abstraction and lets tests inject a stub.
+type MidtransClient interface {
+	CreateSnapTransaction(orderID string, grossAmount int64, customer *midtrans.CustomerDetails, items *[]midtrans.ItemDetails) (*snap.Response, error)
+	VerifySignature(orderID, statusCode, grossAmount, signatureKey string) bool
+}
+
 type PaymentService struct {
 	txnRepo         repository.TransactionRepository
 	pkgRepo         repository.PackageRepository
 	userRepo        repository.UserRepository
 	auditRepo       repository.AuditLogRepository
 	idempotencyRepo repository.WebhookIdempotencyRepository
-	midtransKey     string
+	mtClient        MidtransClient
 	subService      *SubscriptionService
 	emailSvc        EmailSender
 }
@@ -37,14 +46,14 @@ type PaymentService struct {
 func NewPaymentService(txnRepo repository.TransactionRepository, pkgRepo repository.PackageRepository,
 	userRepo repository.UserRepository, auditRepo repository.AuditLogRepository,
 	idempotencyRepo repository.WebhookIdempotencyRepository,
-	cfg config.MidtransConfig, subService *SubscriptionService, emailSvc EmailSender) *PaymentService {
+	mtClient MidtransClient, subService *SubscriptionService, emailSvc EmailSender) *PaymentService {
 	return &PaymentService{
 		txnRepo:         txnRepo,
 		pkgRepo:         pkgRepo,
 		userRepo:        userRepo,
 		auditRepo:       auditRepo,
 		idempotencyRepo: idempotencyRepo,
-		midtransKey:     cfg.ServerKey,
+		mtClient:        mtClient,
 		subService:      subService,
 		emailSvc:        emailSvc,
 	}
@@ -64,9 +73,21 @@ func (s *PaymentService) CreateSnapTransaction(ctx context.Context, userID uuid.
 		return nil, fmt.Errorf("%w: package is not available for purchase", errors.ErrConflict)
 	}
 
-	_, err = s.userRepo.GetByID(ctx, userID)
-	if err != nil {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil || user == nil {
 		return nil, errors.ErrNotFound
+	}
+
+	// Reuse an existing pending transaction for the same user+package instead of
+	// creating a duplicate one (idempotent retry of a retried checkout request).
+	if existing, _ := s.txnRepo.GetPendingByUserAndPackage(ctx, userID, pkgID); existing != nil {
+		return &dto.SnapResponse{
+			TransactionID:   existing.ID,
+			OrderID:         existing.OrderID,
+			SnapToken:       existing.SnapToken,
+			SnapRedirectURL: buildRedirectURL(existing.SnapToken),
+			GrossAmount:     existing.GrossAmount,
+		}, nil
 	}
 
 	now := time.Now()
@@ -95,13 +116,35 @@ func (s *PaymentService) CreateSnapTransaction(ctx context.Context, userID uuid.
 		Metadata:   datatypesJSON(map[string]interface{}{"order_id": orderID, "package_id": pkg.ID.String()}),
 	})
 
-	snapToken := orderID + "-" + uuid.New().String()[:8]
+	customer := &midtrans.CustomerDetails{
+		FName: user.Name,
+		Email: user.Email,
+		Phone: user.Phone,
+	}
+	items := &[]midtrans.ItemDetails{
+		{
+			ID:    pkg.Code,
+			Name:  pkg.Name,
+			Price: pkg.Price,
+			Qty:   1,
+		},
+	}
+
+	snapResp, err := s.mtClient.CreateSnapTransaction(orderID, pkg.Price, customer, items)
+	if err != nil {
+		return nil, fmt.Errorf("create midtrans snap transaction: %w", err)
+	}
+
+	transaction.SnapToken = snapResp.Token
+	if err := s.txnRepo.Update(ctx, transaction); err != nil {
+		return nil, fmt.Errorf("update transaction snap token: %w", err)
+	}
 
 	return &dto.SnapResponse{
 		TransactionID:   transaction.ID,
 		OrderID:         orderID,
-		SnapToken:       snapToken,
-		SnapRedirectURL: fmt.Sprintf("https://app.sandbox.midtrans.com/snap/v3/redirection/%s", snapToken),
+		SnapToken:       snapResp.Token,
+		SnapRedirectURL: snapResp.RedirectURL,
 		GrossAmount:     pkg.Price,
 	}, nil
 }
@@ -119,12 +162,12 @@ func (s *PaymentService) ListUserTransactions(ctx context.Context, userID uuid.U
 }
 
 func (s *PaymentService) HandleWebhook(ctx context.Context, payload dto.MidtransWebhookPayload) error {
-	if !s.verifySignature(payload) {
+	if !s.mtClient.VerifySignature(payload.OrderID, payload.StatusCode, payload.GrossAmount, payload.SignatureKey) {
 		return errors.ErrSignatureInvalid
 	}
 
 	if payload.OrderID == "" {
-		return nil
+		return errors.ErrSignatureInvalid
 	}
 
 	processed, err := s.idempotencyRepo.IsProcessed(ctx, payload.TransactionID)
@@ -142,27 +185,49 @@ func (s *PaymentService) HandleWebhook(ctx context.Context, payload dto.Midtrans
 			EntityType: "transaction",
 			Metadata:   datatypesJSON(map[string]interface{}{"order_id": payload.OrderID}),
 		})
+		_ = s.idempotencyRepo.MarkProcessed(ctx, payload.TransactionID, payload.OrderID, "unknown")
 		return nil
+	}
+
+	// Validate the amount reported by Midtrans matches the stored transaction.
+	// The server (DB price) is the source of truth; this rejects tampered or
+	// forged webhook bodies carrying a different amount.
+	notifiedAmount, err := parseGrossAmount(payload.GrossAmount)
+	if err != nil || notifiedAmount != txn.GrossAmount {
+		_ = s.auditRepo.Create(ctx, &model.AuditLog{
+			Action:     "webhook.amount_mismatch",
+			EntityType: "transaction",
+			EntityID:   &txn.ID,
+			Metadata:   datatypesJSON(map[string]interface{}{"order_id": payload.OrderID, "expected": txn.GrossAmount}),
+		})
+		_ = s.idempotencyRepo.MarkProcessed(ctx, payload.TransactionID, payload.OrderID, "amount_mismatch")
+		return errors.ErrInvalidInput
 	}
 
 	internalStatus := mapMidtransStatus(payload.TransactionStatus)
 
-	if txn.Status == "settlement" && internalStatus == "settlement" {
+	// State machine: never allow a downgrade to an earlier (lower-rank) status.
+	// This blocks late, out-of-order notifications (e.g. expire/deny arriving
+	// after settlement) from corrupting a completed transaction.
+	currentRank := statusRank[txn.Status]
+	newRank := statusRank[internalStatus]
+	if newRank < currentRank {
 		_ = s.idempotencyRepo.MarkProcessed(ctx, payload.TransactionID, payload.OrderID, internalStatus)
 		return nil
 	}
 
+	prevStatus := txn.Status
 	txn.PaymentType = payload.PaymentType
 	txn.Status = internalStatus
 	if payload.TransactionTime != "" {
-		t, err := time.Parse("2006-01-02 15:04:05", payload.TransactionTime)
-		if err == nil {
+		t, perr := time.Parse("2006-01-02 15:04:05", payload.TransactionTime)
+		if perr == nil {
 			txn.TransactionTime = &t
 		}
 	}
 	if payload.SettlementTime != "" {
-		t, err := time.Parse("2006-01-02 15:04:05", payload.SettlementTime)
-		if err == nil {
+		t, perr := time.Parse("2006-01-02 15:04:05", payload.SettlementTime)
+		if perr == nil {
 			txn.SettlementTime = &t
 		}
 	}
@@ -171,7 +236,7 @@ func (s *PaymentService) HandleWebhook(ctx context.Context, payload dto.Midtrans
 		return fmt.Errorf("update transaction: %w", err)
 	}
 
-	if internalStatus == "settlement" {
+	if internalStatus == "settlement" && prevStatus != "settlement" {
 		sub, err := s.subService.ActivateOnSettlement(ctx, txn.ID)
 		if err != nil {
 			return fmt.Errorf("activate subscription: %w", err)
@@ -192,13 +257,6 @@ func (s *PaymentService) HandleWebhook(ctx context.Context, payload dto.Midtrans
 	return nil
 }
 
-func (s *PaymentService) verifySignature(payload dto.MidtransWebhookPayload) bool {
-	hashInput := payload.OrderID + payload.StatusCode + payload.GrossAmount + s.midtransKey
-	expectedHash := sha512.Sum512([]byte(hashInput))
-	expectedSignature := hex.EncodeToString(expectedHash[:])
-	return hmac.Equal([]byte(expectedSignature), []byte(payload.SignatureKey))
-}
-
 func (s *PaymentService) ListAllTransactions(ctx context.Context, page, perPage int, status string) ([]dto.TransactionResponse, int64, error) {
 	txns, total, err := s.txnRepo.ListAll(ctx, page, perPage, status, "")
 	if err != nil {
@@ -209,6 +267,19 @@ func (s *PaymentService) ListAllTransactions(ctx context.Context, page, perPage 
 		result[i] = toTransactionResponse(&txn)
 	}
 	return result, total, nil
+}
+
+// statusRank encodes the lifecycle order of internal transaction statuses.
+// Higher rank = later/higher-priority state. Used to reject downgrade
+// notifications (e.g. an expire arriving after settlement).
+var statusRank = map[string]int{
+	"pending":    1,
+	"deny":       2,
+	"cancel":     2,
+	"expire":     2,
+	"failed":     2,
+	"settlement": 10,
+	"refund":     11,
 }
 
 func mapMidtransStatus(status string) string {
@@ -228,6 +299,21 @@ func mapMidtransStatus(status string) string {
 	default:
 		return status
 	}
+}
+
+func parseGrossAmount(s string) (int64, error) {
+	f, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
+	if err != nil {
+		return 0, err
+	}
+	return int64(math.Round(f)), nil
+}
+
+func buildRedirectURL(token string) string {
+	if token == "" {
+		return ""
+	}
+	return fmt.Sprintf("https://app.sandbox.midtrans.com/snap/v3/redirection/%s", token)
 }
 
 func hashUserID(id string) string {

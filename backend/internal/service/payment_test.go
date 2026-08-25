@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/owndangan/backend/internal/api/dto"
-	"github.com/owndangan/backend/internal/config"
 	"github.com/owndangan/backend/internal/model"
 	"github.com/owndangan/backend/internal/service"
 	"github.com/stretchr/testify/require"
@@ -48,7 +47,7 @@ func setupPaymentService(t *testing.T) (*service.PaymentService, *mockPackageRep
 		newMockUserRepo(),
 		&mockAuditLogRepo{},
 		&mockWebhookIdempotencyRepo{},
-		config.MidtransConfig{ServerKey: "test-server-key"},
+		&mockMidtransClient{},
 		subSvc,
 		noopEmailSender{},
 	)
@@ -490,4 +489,101 @@ func TestPayment_Webhook_AlreadySettledIdempotent(t *testing.T) {
 
 	updatedTxn, _ := txnRepo.GetByOrderID(ctx, "INV-IDEMPOTENT-001")
 	require.Equal(t, "settlement", updatedTxn.Status)
+}
+
+func TestPayment_Webhook_WrongAmountRejected(t *testing.T) {
+	svc, _, txnRepo := setupPaymentService(t)
+	ctx := context.Background()
+
+	txn := &model.Transaction{
+		OrderID:     "INV-WRONGAMT-001",
+		GrossAmount: 99000,
+		Status:      "pending",
+	}
+	txnRepo.Create(ctx, txn)
+
+	// Valid signature but tampered amount: server price (99000) must win.
+	payload := dto.MidtransWebhookPayload{
+		OrderID:           "INV-WRONGAMT-001",
+		TransactionID:     "txn-wrongamt-001",
+		TransactionStatus: "settlement",
+		StatusCode:        "200",
+		GrossAmount:       "100000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-WRONGAMT-001", "200", "100000"),
+	}
+
+	err := svc.HandleWebhook(ctx, payload)
+	require.Error(t, err)
+
+	updatedTxn, _ := txnRepo.GetByOrderID(ctx, "INV-WRONGAMT-001")
+	require.Equal(t, "pending", updatedTxn.Status)
+}
+
+func TestPayment_Webhook_LateDowngradeIgnored(t *testing.T) {
+	svc, pkgRepo, txnRepo := setupPaymentService(t)
+	ctx := context.Background()
+
+	userID := uuid.New()
+	txn := &model.Transaction{
+		OrderID:     "INV-DOWNGRADE-001",
+		GrossAmount: 99000,
+		Status:      "pending",
+		UserID:      userID,
+		PackageID:   pkgRepo.packages["starter"].ID,
+	}
+	txnRepo.Create(ctx, txn)
+
+	settle := dto.MidtransWebhookPayload{
+		OrderID:           "INV-DOWNGRADE-001",
+		TransactionID:     "txn-downgrade-001",
+		TransactionStatus: "settlement",
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-DOWNGRADE-001", "200", "99000"),
+	}
+	require.NoError(t, svc.HandleWebhook(ctx, settle))
+	require.Equal(t, "settlement", mustGetStatus(t, txnRepo, "INV-DOWNGRADE-001"))
+
+	// A late expire arriving after settlement must NOT downgrade the state.
+	expire := dto.MidtransWebhookPayload{
+		OrderID:           "INV-DOWNGRADE-001",
+		TransactionID:     "txn-downgrade-002",
+		TransactionStatus: "expire",
+		StatusCode:        "200",
+		GrossAmount:       "99000",
+		PaymentType:       "credit_card",
+		SignatureKey:      generateSignature("INV-DOWNGRADE-001", "200", "99000"),
+	}
+	require.NoError(t, svc.HandleWebhook(ctx, expire))
+	require.Equal(t, "settlement", mustGetStatus(t, txnRepo, "INV-DOWNGRADE-001"))
+}
+
+func mustGetStatus(t *testing.T, txnRepo *mockTransactionRepo, orderID string) string {
+	t.Helper()
+	txn, err := txnRepo.GetByOrderID(context.Background(), orderID)
+	require.NoError(t, err)
+	require.NotNil(t, txn)
+	return txn.Status
+}
+
+func TestPayment_CreateSnapTransaction_DuplicatePendingReturnsExisting(t *testing.T) {
+	svc, pkgRepo, txnRepo := setupPaymentService(t)
+	ctx := context.Background()
+	userID := uuid.New()
+
+	resp1, err := svc.CreateSnapTransaction(ctx, userID, dto.CreateSnapRequest{
+		PackageID: pkgRepo.packages["starter"].ID.String(),
+	})
+	require.NoError(t, err)
+
+	resp2, err := svc.CreateSnapTransaction(ctx, userID, dto.CreateSnapRequest{
+		PackageID: pkgRepo.packages["starter"].ID.String(),
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, resp1.OrderID, resp2.OrderID)
+	require.Equal(t, resp1.TransactionID, resp2.TransactionID)
+	require.Len(t, txnRepo.txns, 1)
 }

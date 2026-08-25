@@ -11,6 +11,7 @@ import (
 	"github.com/owndangan/backend/internal/api/middleware"
 	"github.com/owndangan/backend/internal/config"
 	"github.com/owndangan/backend/internal/pkg/jwt"
+	"github.com/owndangan/backend/internal/pkg/midtrans"
 	"github.com/owndangan/backend/internal/pkg/storage"
 	"github.com/owndangan/backend/internal/repository"
 	"github.com/owndangan/backend/internal/service"
@@ -91,9 +92,10 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 	subSvc := service.NewSubscriptionService(deps.SubscriptionRepo, deps.PackageRepo, deps.TransactionRepo, deps.UserRepo, deps.AuditLogRepo)
 	subHandler := handler.NewSubscriptionHandler(subSvc)
 
+	mtClient := midtrans.NewClient(cfg.Midtrans.ServerKey, cfg.Midtrans.IsProduction)
 	paySvc := service.NewPaymentService(
 		deps.TransactionRepo, deps.PackageRepo, deps.UserRepo, deps.AuditLogRepo,
-		deps.WebhookIdempotencyRepo, cfg.Midtrans, subSvc, emailSender,
+		deps.WebhookIdempotencyRepo, mtClient, subSvc, emailSender,
 	)
 	payHandler := handler.NewPaymentHandler(paySvc)
 
@@ -116,7 +118,8 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 	guestHandler := handler.NewGuestHandler(guestSvc)
 
 	rsvpSvc := rsvp.NewService(
-		deps.RSVPRepo, deps.GuestRepo, deps.EventRepo, deps.UserRepo, deps.AuditLogRepo, emailSender,
+		deps.RSVPRepo, deps.GuestRepo, deps.EventRepo, deps.UserRepo,
+		deps.SubscriptionRepo, deps.PackageRepo, deps.AuditLogRepo, emailSender,
 	)
 	rsvpHandler := handler.NewRSVPHandler(rsvpSvc)
 
@@ -187,6 +190,7 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 				r.Put("/{id}/sections", EventHandler.UpdateSections)
 				r.Get("/{id}/digital-gifts", EventHandler.GetDigitalGift)
 				r.Put("/{id}/digital-gifts", EventHandler.UpdateDigitalGift)
+				r.Get("/{id}/rsvp/export", rsvpHandler.ExportByEvent)
 				r.Route("/{id}/gallery", func(r chi.Router) {
 					r.Get("/", EventHandler.ListGallery)
 					r.Post("/upload", EventHandler.UploadGallery)
@@ -216,7 +220,7 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 			})
 		})
 
-		r.Get("/e/{slug}", EventHandler.PublicView)
+		r.Post("/guests/check-in", guestHandler.CheckIn)
 
 		r.Get("/invitations/public", EventHandler.PublicList)
 
@@ -238,6 +242,9 @@ func NewServer(cfg *config.Config, deps *Dependencies, db *gorm.DB, log zerolog.
 			guestbookHandler.RegisterRoutes(r, authRequired, func(h http.Handler) http.Handler { return h })
 		})
 	})
+
+	// Public invitation pages live at the site root (/e/{slug}); the frontend fetches them there, so keep this out of the /api/v1 group.
+	r.Get("/e/{slug}", EventHandler.PublicView)
 
 	s := &Server{router: r}
 	return s
