@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MessageSquare, CheckCircle2, XCircle, Users, CalendarCheck, Download, HelpCircle } from "lucide-react"
+import { MessageSquare, CheckCircle2, XCircle, Users, CalendarCheck, Download, HelpCircle, FileSpreadsheet, AlertCircle } from "lucide-react"
 import ProtectedRoute from "@/components/dashboard/protected-route"
 import DashboardLayout from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -41,6 +41,8 @@ export default function RSVPPage() {
   const [rsvps, setRsvps] = useState<RSVP[]>([])
   const [eventID, setEventID] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchRSVP()
@@ -67,19 +69,34 @@ export default function RSVPPage() {
     }
   }
 
-  const exportCSV = async () => {
+  const downloadExport = async (format: "csv" | "xlsx") => {
     if (!eventID) return
+    setExporting(true)
+    setExportError(null)
     try {
-      const res = await api.get(`/rsvp/${eventID}/export`, { responseType: "blob" })
-      const url = URL.createObjectURL(res.data as Blob)
+      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
+      const res = await fetch(`${baseURL}/events/${eventID}/rsvp/export?format=${format}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error("Ekspor XLSX hanya untuk pengguna Pro. Upgrade paket untuk mengunduh XLSX.")
+        }
+        throw new Error("Gagal mengekspor data RSVP")
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `rsvp-${eventID}.csv`
+      a.download = `rsvp-${eventID}.${format}`
       a.click()
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error("Failed to export RSVP:", error)
-      alert("Gagal mengekspor data RSVP")
+      setExportError(error instanceof Error ? error.message : "Gagal mengekspor data RSVP")
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -102,9 +119,33 @@ export default function RSVPPage() {
                 Pantau konfirmasi kehadiran tamu secara real-time.
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={exportCSV} disabled={!eventID}>
-              <Download className="h-4 w-4 mr-2" /> Ekspor CSV
-            </Button>
+            <div className="flex flex-col items-start sm:items-end gap-2">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadExport("csv")}
+                  disabled={!eventID || exporting}
+                >
+                  <Download className="h-4 w-4 mr-2" /> Ekspor CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadExport("xlsx")}
+                  disabled={!eventID || exporting}
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" /> Ekspor XLSX
+                  <Badge variant="secondary" className="ml-2 border-0">Pro</Badge>
+                </Button>
+              </div>
+              {exportError && (
+                <p className="flex items-center gap-1.5 text-xs text-destructive max-w-xs text-left">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  {exportError}
+                </p>
+              )}
+            </div>
           </div>
 
           {loading ? (

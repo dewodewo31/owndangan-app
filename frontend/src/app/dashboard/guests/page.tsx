@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, MessageCircle, Trash2, Users, Download, X, RotateCcw } from "lucide-react"
+import { Plus, MessageCircle, Trash2, Users, Download, X, RotateCcw, QrCode, AlertCircle, CheckCircle2 } from "lucide-react"
 import ProtectedRoute from "@/components/dashboard/protected-route"
 import DashboardLayout from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent } from "@/components/ui/card"
@@ -56,6 +56,11 @@ export default function GuestsPage() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [eventId, setEventId] = useState<string | null>(null)
   const [newGuest, setNewGuest] = useState({ name: '', phone: '', category: 'family', note: '' })
+  const [checkInToken, setCheckInToken] = useState('')
+  const [checkingIn, setCheckingIn] = useState(false)
+  const [checkInError, setCheckInError] = useState<string | null>(null)
+  const [checkInResult, setCheckInResult] = useState<{ token: string; attendedAt: string } | null>(null)
+  const [attendedMap, setAttendedMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetchGuests()
@@ -131,6 +136,37 @@ export default function GuestsPage() {
     return `https://wa.me/${phone.replace(/^0/, '62')}?text=${encodeURIComponent(message)}`
   }
 
+  const checkIn = async (token: string) => {
+    const clean = token.trim()
+    if (!clean) return
+    setCheckingIn(true)
+    setCheckInError(null)
+    try {
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'
+      const res = await fetch(`${baseURL}/guests/check-in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: clean }),
+      })
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error('Check-in hanya tersedia untuk pengguna Pro.')
+        }
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error?.message || 'Gagal melakukan check-in.')
+      }
+      const body = await res.json()
+      const attendedAt = body?.data?.attended_at
+      setCheckInResult({ token: clean, attendedAt })
+      const g = guests.find((x) => x.token === clean)
+      if (g) setAttendedMap((m) => ({ ...m, [g.id]: attendedAt }))
+    } catch (error) {
+      setCheckInError(error instanceof Error ? error.message : 'Gagal melakukan check-in.')
+    } finally {
+      setCheckingIn(false)
+    }
+  }
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -156,6 +192,52 @@ export default function GuestsPage() {
               </Button>
             </div>
           </div>
+
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="checkin-token">Token Tamu</Label>
+                  <Input
+                    id="checkin-token"
+                    type="text"
+                    placeholder="Tempel token undangan tamu (mis. hasil pindai QR)"
+                    value={checkInToken}
+                    onChange={(e) => setCheckInToken(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') checkIn(checkInToken)
+                    }}
+                  />
+                </div>
+                <Button
+                  onClick={() => checkIn(checkInToken)}
+                  loading={checkingIn}
+                  disabled={!checkInToken.trim()}
+                  className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 border-0"
+                >
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Check-in
+                </Button>
+              </div>
+              {checkInError && (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>{checkInError}</span>
+                </div>
+              )}
+              {checkInResult && (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-success/30 bg-success/10 px-3.5 py-2.5 text-sm text-success">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    Tamu berhasil check-in
+                    {checkInResult.attendedAt
+                      ? ` · ${new Date(checkInResult.attendedAt).toLocaleString('id-ID')}`
+                      : ''}
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="flex gap-2">
             <Button
@@ -308,6 +390,21 @@ export default function GuestsPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex justify-end gap-2">
+                              {attendedMap[guest.id] ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-success">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Hadir
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => checkIn(guest.token)}
+                                  disabled={checkingIn}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                                >
+                                  <QrCode className="h-4 w-4" />
+                                  Check-in
+                                </button>
+                              )}
                               {guest.phone ? (
                                 <a
                                   href={generateWhatsAppLink(guest)}
