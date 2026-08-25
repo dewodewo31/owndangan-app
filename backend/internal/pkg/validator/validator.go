@@ -86,6 +86,13 @@ func slugValidator(fl validator.FieldLevel) bool {
 func phoneIDValidator(fl validator.FieldLevel) bool {
 	return phonePattern.MatchString(fl.Field().String())
 }
+// IsValidIDPhone reports whether s is a valid Indonesian phone number
+// (starts with 62 followed by 8-15 digits). Exported so server-side
+// business logic can reuse the exact rule from the request path.
+func IsValidIDPhone(s string) bool {
+	return phonePattern.MatchString(s)
+}
+
 
 func dateValidator(fl validator.FieldLevel) bool {
 	_, err := time.Parse("2006-01-02", fl.Field().String())

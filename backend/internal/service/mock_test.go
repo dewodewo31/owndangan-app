@@ -5,6 +5,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
+	"testing"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,8 @@ import (
 	"github.com/midtrans/midtrans-go/snap"
 	"github.com/owndangan/backend/internal/model"
 	"github.com/owndangan/backend/internal/repository"
+	"github.com/owndangan/backend/internal/service"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -45,7 +48,7 @@ func (m *mockUserRepo) GetByID(ctx context.Context, id uuid.UUID) (*model.User, 
 	if u, ok := m.users[id]; ok {
 		return u, nil
 	}
-	return &model.User{ID: id, Name: "Test", Email: "test@example.com", Role: "user", Status: "active"}, nil
+	return &model.User{ID: id, Name: "Test", Email: "test@example.com", Phone: "6281234567890", Role: "user", Status: "active"}, nil
 }
 
 func (m *mockUserRepo) GetByEmail(ctx context.Context, email string) (*model.User, error) {
@@ -351,4 +354,71 @@ func (m *mockMidtransClient) VerifySignature(orderID, statusCode, grossAmount, s
 	h := sha512.Sum512([]byte(hashInput))
 	expected := hex.EncodeToString(h[:])
 	return expected == signatureKey
+}
+
+type fakeMidtransClient struct {
+	token       string
+	redirectURL string
+	err         error
+	calls       int
+}
+
+func (f *fakeMidtransClient) CreateSnapTransaction(orderID string, grossAmount int64, customer *midtrans.CustomerDetails, items *[]midtrans.ItemDetails) (*snap.Response, error) {
+	f.calls++
+	if f.err != nil {
+		return nil, f.err
+	}
+	tok := f.token
+	if tok == "" {
+		tok = "fresh-snap-token"
+	}
+	url := f.redirectURL
+	if url == "" {
+		url = "https://app.sandbox.midtrans.com/snap/v3/redirection/" + tok
+	}
+	return &snap.Response{Token: tok, RedirectURL: url}, nil
+}
+
+func (f *fakeMidtransClient) VerifySignature(orderID, statusCode, grossAmount, signatureKey string) bool {
+	hashInput := orderID + statusCode + grossAmount + testMidtransServerKey
+	h := sha512.Sum512([]byte(hashInput))
+	return hex.EncodeToString(h[:]) == signatureKey
+}
+
+func setupPaymentServiceWith(t *testing.T, txnRepo *mockTransactionRepo, mt service.MidtransClient) (*service.PaymentService, *mockPackageRepo, *mockTransactionRepo) {
+	t.Helper()
+	pkgRepo := newMockPackageRepo()
+	duration := 30
+	starterPkg := &model.Package{
+		ID:            uuid.New(),
+		Name:          "Starter",
+		Code:          "starter",
+		Price:         99000,
+		DurationDays:  &duration,
+		GuestLimit:    &[]int{100}[0],
+		TemplateGroup: "standard",
+		Features:      datatypes.JSON(`{"guest.max": 100, "event.max": 3}`),
+		IsActive:      true,
+	}
+	pkgRepo.packages["starter"] = starterPkg
+
+	subSvc := service.NewSubscriptionService(
+		&mockSubscriptionRepo{},
+		pkgRepo,
+		txnRepo,
+		newMockUserRepo(),
+		&mockAuditLogRepo{},
+	)
+
+	paySvc := service.NewPaymentService(
+		txnRepo,
+		pkgRepo,
+		newMockUserRepo(),
+		&mockAuditLogRepo{},
+		&mockWebhookIdempotencyRepo{},
+		mt,
+		subSvc,
+		noopEmailSender{},
+	)
+	return paySvc, pkgRepo, txnRepo
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -568,8 +569,96 @@ func mustGetStatus(t *testing.T, txnRepo *mockTransactionRepo, orderID string) s
 	return txn.Status
 }
 
-func TestPayment_CreateSnapTransaction_DuplicatePendingReturnsExisting(t *testing.T) {
-	svc, pkgRepo, txnRepo := setupPaymentService(t)
+func TestPayment_CreateSnapTransaction_NoReuseDeadToken(t *testing.T) {
+	txnRepo := &mockTransactionRepo{}
+	mt := &fakeMidtransClient{token: "fresh-token-abc"}
+	svc, pkgRepo, _ := setupPaymentServiceWith(t, txnRepo, mt)
+	ctx := context.Background()
+	userID := uuid.New()
+
+	txnRepo.txns = append(txnRepo.txns, &model.Transaction{
+		ID:        uuid.New(),
+		UserID:    userID,
+		PackageID: pkgRepo.packages["starter"].ID,
+		OrderID:   "INV-DEAD-001",
+		Status:    "pending",
+		SnapToken: "dead-token-xyz",
+	})
+
+	resp, err := svc.CreateSnapTransaction(ctx, userID, dto.CreateSnapRequest{
+		PackageID: pkgRepo.packages["starter"].ID.String(),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "fresh-token-abc", resp.SnapToken, "must return a fresh token, never the dead stored one")
+	require.Equal(t, 1, mt.calls, "Midtrans must be called to mint a fresh token")
+	require.Len(t, txnRepo.txns, 2, "a new transaction must be persisted alongside the seeded one")
+	require.Equal(t, "fresh-token-abc", txnRepo.txns[1].SnapToken)
+}
+
+func TestPayment_CreateSnapTransaction_NoReuseEmptyToken(t *testing.T) {
+	txnRepo := &mockTransactionRepo{}
+	mt := &fakeMidtransClient{token: "fresh-token-2"}
+	svc, pkgRepo, _ := setupPaymentServiceWith(t, txnRepo, mt)
+	ctx := context.Background()
+	userID := uuid.New()
+
+	txnRepo.txns = append(txnRepo.txns, &model.Transaction{
+		ID:        uuid.New(),
+		UserID:    userID,
+		PackageID: pkgRepo.packages["starter"].ID,
+		OrderID:   "INV-EMPTY-001",
+		Status:    "pending",
+		SnapToken: "",
+	})
+
+	resp, err := svc.CreateSnapTransaction(ctx, userID, dto.CreateSnapRequest{
+		PackageID: pkgRepo.packages["starter"].ID.String(),
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.SnapToken, "must not return an empty token")
+	require.Equal(t, "fresh-token-2", resp.SnapToken)
+	require.Equal(t, 1, mt.calls)
+	require.Len(t, txnRepo.txns, 2)
+	require.NotEmpty(t, txnRepo.txns[1].SnapToken)
+}
+
+func TestPayment_CreateSnapTransaction_MidtransFailureNoDangling(t *testing.T) {
+	txnRepo := &mockTransactionRepo{}
+	mt := &fakeMidtransClient{err: errors.New("midtrans unavailable")}
+	svc, pkgRepo, _ := setupPaymentServiceWith(t, txnRepo, mt)
+	ctx := context.Background()
+	userID := uuid.New()
+
+	_, err := svc.CreateSnapTransaction(ctx, userID, dto.CreateSnapRequest{
+		PackageID: pkgRepo.packages["starter"].ID.String(),
+	})
+	require.Error(t, err)
+	require.Equal(t, 1, mt.calls)
+	require.Empty(t, txnRepo.txns, "no transaction may be persisted when Midtrans fails")
+}
+
+func TestPayment_CreateSnapTransaction_SuccessPersistsToken(t *testing.T) {
+	txnRepo := &mockTransactionRepo{}
+	mt := &fakeMidtransClient{token: "fresh-token-3"}
+	svc, pkgRepo, _ := setupPaymentServiceWith(t, txnRepo, mt)
+	ctx := context.Background()
+	userID := uuid.New()
+
+	resp, err := svc.CreateSnapTransaction(ctx, userID, dto.CreateSnapRequest{
+		PackageID: pkgRepo.packages["starter"].ID.String(),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "fresh-token-3", resp.SnapToken)
+	require.Contains(t, resp.SnapRedirectURL, "sandbox.midtrans.com")
+	require.Len(t, txnRepo.txns, 1)
+	require.Equal(t, "fresh-token-3", txnRepo.txns[0].SnapToken)
+	require.NotEmpty(t, txnRepo.txns[0].OrderID)
+}
+
+func TestPayment_CreateSnapTransaction_NoReuseCreatesDistinct(t *testing.T) {
+	txnRepo := &mockTransactionRepo{}
+	mt := &fakeMidtransClient{}
+	svc, pkgRepo, _ := setupPaymentServiceWith(t, txnRepo, mt)
 	ctx := context.Background()
 	userID := uuid.New()
 
@@ -583,7 +672,10 @@ func TestPayment_CreateSnapTransaction_DuplicatePendingReturnsExisting(t *testin
 	})
 	require.NoError(t, err)
 
-	require.Equal(t, resp1.OrderID, resp2.OrderID)
-	require.Equal(t, resp1.TransactionID, resp2.TransactionID)
-	require.Len(t, txnRepo.txns, 1)
+	require.NotEqual(t, resp1.OrderID, resp2.OrderID, "each checkout must mint a distinct order_id")
+	require.NotEqual(t, resp1.TransactionID, resp2.TransactionID)
+	require.Equal(t, 2, mt.calls, "Midtrans must be called for every checkout")
+	require.Len(t, txnRepo.txns, 2)
+	require.NotEmpty(t, resp1.SnapToken)
+	require.NotEmpty(t, resp2.SnapToken)
 }

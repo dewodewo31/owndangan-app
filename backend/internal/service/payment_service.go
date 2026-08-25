@@ -16,6 +16,7 @@ import (
 	"github.com/owndangan/backend/internal/api/dto"
 	"github.com/owndangan/backend/internal/model"
 	"github.com/owndangan/backend/internal/pkg/errors"
+	idvalidator "github.com/owndangan/backend/internal/pkg/validator"
 	"github.com/owndangan/backend/internal/repository"
 	"github.com/owndangan/backend/internal/service/email"
 )
@@ -77,44 +78,22 @@ func (s *PaymentService) CreateSnapTransaction(ctx context.Context, userID uuid.
 	if err != nil || user == nil {
 		return nil, errors.ErrNotFound
 	}
-
-	// Reuse an existing pending transaction for the same user+package instead of
-	// creating a duplicate one (idempotent retry of a retried checkout request).
-	if existing, _ := s.txnRepo.GetPendingByUserAndPackage(ctx, userID, pkgID); existing != nil {
-		return &dto.SnapResponse{
-			TransactionID:   existing.ID,
-			OrderID:         existing.OrderID,
-			SnapToken:       existing.SnapToken,
-			SnapRedirectURL: buildRedirectURL(existing.SnapToken),
-			GrossAmount:     existing.GrossAmount,
-		}, nil
+	if !idvalidator.IsValidIDPhone(user.Phone) {
+		return nil, errors.ErrPhoneRequired
 	}
 
+	// Every checkout mints a fresh Snap Token from Midtrans. A previously stored
+	// token is never reused: it may have expired or been invalidated and Midtrans
+	// would reject it at snap.pay time. A unique order_id per request keeps the
+	// DB unique constraint satisfied across repeat checkouts.
+	//
+	// Midtrans is called BEFORE any row is persisted, so a failed call leaves no
+	// dangling pending transaction with an empty snap_token behind.
 	now := time.Now()
-	orderID := fmt.Sprintf("INV-%s-%s-%04d",
+	orderID := fmt.Sprintf("INV-%s-%s-%d",
 		now.Format("20060102"),
 		hashUserID(userID.String()),
-		now.Unix()%10000)
-
-	transaction := &model.Transaction{
-		UserID:      userID,
-		PackageID:   pkg.ID,
-		OrderID:     orderID,
-		GrossAmount: pkg.Price,
-		Status:      "pending",
-	}
-
-	if err := s.txnRepo.Create(ctx, transaction); err != nil {
-		return nil, fmt.Errorf("create transaction: %w", err)
-	}
-
-	_ = s.auditRepo.Create(ctx, &model.AuditLog{
-		UserID:     &userID,
-		Action:     "transaction.created",
-		EntityType: "transaction",
-		EntityID:   &transaction.ID,
-		Metadata:   datatypesJSON(map[string]interface{}{"order_id": orderID, "package_id": pkg.ID.String()}),
-	})
+		now.UnixNano())
 
 	customer := &midtrans.CustomerDetails{
 		FName: user.Name,
@@ -134,11 +113,29 @@ func (s *PaymentService) CreateSnapTransaction(ctx context.Context, userID uuid.
 	if err != nil {
 		return nil, fmt.Errorf("create midtrans snap transaction: %w", err)
 	}
-
-	transaction.SnapToken = snapResp.Token
-	if err := s.txnRepo.Update(ctx, transaction); err != nil {
-		return nil, fmt.Errorf("update transaction snap token: %w", err)
+	if snapResp == nil || snapResp.Token == "" {
+		return nil, fmt.Errorf("create midtrans snap transaction: empty snap token returned")
 	}
+
+	transaction := &model.Transaction{
+		UserID:      userID,
+		PackageID:   pkg.ID,
+		OrderID:     orderID,
+		GrossAmount: pkg.Price,
+		Status:      "pending",
+		SnapToken:   snapResp.Token,
+	}
+	if err := s.txnRepo.Create(ctx, transaction); err != nil {
+		return nil, fmt.Errorf("create transaction: %w", err)
+	}
+
+	_ = s.auditRepo.Create(ctx, &model.AuditLog{
+		UserID:     &userID,
+		Action:     "transaction.created",
+		EntityType: "transaction",
+		EntityID:   &transaction.ID,
+		Metadata:   datatypesJSON(map[string]interface{}{"order_id": orderID, "package_id": pkg.ID.String()}),
+	})
 
 	return &dto.SnapResponse{
 		TransactionID:   transaction.ID,

@@ -51,7 +51,7 @@ func registerPayer(t *testing.T) (string, string) {
 	testCounter++
 	email := fmt.Sprintf("payer_%d@example.com", testCounter)
 	doAuthRequest(t, http.MethodPost, "/api/v1/auth/register", map[string]string{
-		"name": "Payer", "email": email, "password": "securepassword123",
+		"name": "Payer", "email": email, "password": "securepassword123", "phone": "6281234567890",
 	}, "")
 	lr := doAuthRequest(t, http.MethodPost, "/api/v1/auth/login", map[string]string{
 		"email": email, "password": "securepassword123",

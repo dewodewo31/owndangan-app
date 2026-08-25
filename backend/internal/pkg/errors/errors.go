@@ -32,6 +32,7 @@ var (
 	ErrPaymentRequired  = &AppError{Code: "PAYMENT_REQUIRED", HTTPStatus: http.StatusPaymentRequired, Message: "Active subscription required"}
 	ErrLimitExceeded    = &AppError{Code: "LIMIT_EXCEEDED", HTTPStatus: http.StatusUnprocessableEntity, Message: "Plan limit exceeded"}
 	ErrInvalidInput     = &AppError{Code: "VALIDATION_ERROR", HTTPStatus: http.StatusUnprocessableEntity, Message: "Validation failed"}
+	ErrPhoneRequired    = &AppError{Code: "PHONE_REQUIRED", HTTPStatus: http.StatusUnprocessableEntity, Message: "Nomor telepon wajib diisi dengan format Indonesia (62xxx) untuk membuat transaksi pembayaran"}
 	ErrSignatureInvalid = &AppError{Code: "INVALID_SIGNATURE", HTTPStatus: http.StatusUnauthorized, Message: "Invalid signature"}
 )
 
