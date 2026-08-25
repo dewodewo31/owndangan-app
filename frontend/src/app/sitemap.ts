@@ -6,7 +6,7 @@ interface PublicInvitation {
 }
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
+const API_URL = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = ["", "/cara-order", "/faq", "/testimoni"]

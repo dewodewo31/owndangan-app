@@ -99,7 +99,9 @@ See `docs/testing/strategy.md`.
 
 ## Development
 
-See `docs/development/setup.md`.
+- **How to run** — `docs/how-to-run.md` (canonical, accurate run guide: native dev + full Docker stack)
+- Setup details — `docs/development/setup.md`
+- Local workflow — `docs/development/local-development.md`
 
 ## Deployment
 

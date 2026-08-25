@@ -10,20 +10,29 @@ The application uses environment variables for all configuration. No secrets or 
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
+| `APP_ENV` | No | `development` | Runtime environment |
 | `PORT` | No | `8080` | HTTP server port |
-| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
-| `DATABASE_MAX_OPEN` | No | `25` | Max open DB connections |
-| `DATABASE_MAX_IDLE` | No | `5` | Max idle DB connections |
-| `DATABASE_CONN_MAX_LIFETIME` | No | `5m` | Max connection lifetime |
+| `DB_HOST` | Yes | `localhost` | PostgreSQL host |
+| `DB_PORT` | Yes | `5433` | PostgreSQL port (repo convention: 5433) |
+| `DB_USER` | Yes | `postgres` | PostgreSQL user |
+| `DB_PASSWORD` | Yes | `password` | PostgreSQL password |
+| `DB_NAME` | Yes | `owndangan` | Database name |
+| `DB_SSLMODE` | No | `disable` | SSL mode |
+| `DB_MAX_OPEN_CONNS` | No | `25` | Max open DB connections |
+| `DB_MAX_IDLE_CONNS` | No | `5` | Max idle DB connections |
+| `DB_LOG_SQL` | No | `false` | Log SQL queries |
 | `JWT_SECRET` | Yes | — | HMAC key for signing JWT tokens |
-| `JWT_ACCESS_TTL` | No | `15m` | Access token expiry |
-| `JWT_REFRESH_TTL` | No | `7d` | Refresh token expiry |
-| `MIDTRANS_SERVER_KEY` | Yes | — | Midtrans server key (sandbox or production) |
-| `MIDTRANS_CLIENT_KEY` | Yes | — | Midtrans client key (sandbox or production) |
+| `JWT_ACCESS_EXPIRY` | No | `15m` | Access token expiry |
+| `JWT_REFRESH_EXPIRY` | No | `168h` | Refresh token expiry |
+| `MIDTRANS_SERVER_KEY` | No* | — | Midtrans server key (sandbox or production) |
+| `MIDTRANS_CLIENT_KEY` | No* | — | Midtrans client key (sandbox or production) |
 | `MIDTRANS_IS_PRODUCTION` | No | `false` | Toggle sandbox/production mode |
-| `CORS_ALLOWED_ORIGINS` | No | `http://localhost:3000` | Comma-separated allowed origins |
-| `LOG_LEVEL` | No | `info` | Log level: debug, info, warn, error |
-| `SENTRY_DSN` | No | — | Sentry error tracking DSN |
+| `STORAGE_PROVIDER` | No | `local` | Object storage provider (`local` / s3) |
+| `CORS_ALLOWED_ORIGINS` | No | `http://localhost:3000,http://localhost:8080` | Comma-separated allowed origins |
+
+\* Required only when using payments; the app boots without them.
+
+The backend reads individual `DB_*` variables — there is **no** `DATABASE_URL` connection string. Migrations and package seeds run automatically on server start, so no `goose`/migration tool is needed.
 
 ### Environment-Specific Overrides
 
@@ -35,7 +44,7 @@ Create `backend/.env.development`, `backend/.env.staging`, `backend/.env.product
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `NEXT_PUBLIC_API_URL` | Yes | `http://localhost:8080/api` | Backend API base URL |
+| `NEXT_PUBLIC_API_URL` | Yes | `http://localhost:8080/api/v1` | Backend API base URL |
 | `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY` | Yes | — | Midtrans client key (public) |
 | `NEXT_PUBLIC_SENTRY_DSN` | No | — | Sentry DSN for frontend error tracking |
 | `NEXT_PUBLIC_GA_ID` | No | — | Google Analytics ID |
@@ -69,7 +78,11 @@ Each project contains a `.env.example` with placeholder values:
 
 ```bash
 # backend/.env.example
-DATABASE_URL=postgres://user:password@localhost:5432/owndangan
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=postgres
+DB_PASSWORD=password
+DB_NAME=owndangan
 JWT_SECRET=change-me-to-a-random-64-char-string
 MIDTRANS_SERVER_KEY=SB-Mid-server-xxx
 MIDTRANS_CLIENT_KEY=SB-Mid-client-xxx

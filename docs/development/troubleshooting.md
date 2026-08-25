@@ -15,7 +15,7 @@ kill -9 <PID>
 
 **Error**: `pq: role "postgres" does not exist`
 
-**Solution**: Create the PostgreSQL role or update `DATABASE_URL`:
+**Solution**: Create the PostgreSQL role, or check the `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` values in `backend/.env`:
 
 ```bash
 sudo -u postgres createuser --superuser $USER
@@ -37,17 +37,19 @@ docker start owndangan-db           # If using Docker
 
 **Error**: `pq: password authentication failed for user "postgres"`
 
-**Solution**: Update `DATABASE_URL` password or configure `pg_hba.conf` to use `trust` for local connections.
+**Solution**: Update the `DB_PASSWORD` value in `backend/.env` or configure `pg_hba.conf` to use `trust` for local connections.
 
 ### Migration errors
 
-**Error**: `goose: no migration found`
+Migrations and package seeds run **automatically when the backend starts** (`db.AutoMigrate()` + `SeedPackages`). There is no separate migration command to run.
 
-**Solution**: Ensure you're running `goose` from the `backend` directory where migrations are stored.
+**Error**: Schema missing / tables don't exist after a fresh DB.
+
+**Solution**: Restart the backend — it auto-migrates on boot. If the DB was created empty, the first server start populates it.
 
 **Error**: `duplicate key value violates unique constraint`
 
-**Solution**: The migration has already been applied. Check status with `goose status` and either skip or create a new migration.
+**Solution**: The row already exists (e.g., a seeded package). This is harmless on restart since seeds are idempotent/guarded; otherwise drop and recreate the database.
 
 ### CORS errors
 

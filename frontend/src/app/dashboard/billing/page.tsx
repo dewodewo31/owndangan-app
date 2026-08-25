@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { CreditCard, Receipt, ArrowRight, Crown, Sparkles, Loader2 } from "lucide-react"
+import { CreditCard, Receipt, ArrowRight, Crown, Sparkles, Loader2, AlertCircle } from "lucide-react"
 import ProtectedRoute from "@/components/dashboard/protected-route"
 import DashboardLayout from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -101,6 +101,7 @@ export default function BillingPage() {
   const [packages, setPackages] = useState<Pkg[]>([])
   const [loading, setLoading] = useState(true)
   const [checkingOut, setCheckingOut] = useState<string | null>(null)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchBilling()
@@ -165,6 +166,7 @@ export default function BillingPage() {
   const handleCheckout = async (pkg: Pkg) => {
     if (checkingOut) return
     setCheckingOut(pkg.id)
+    setCheckoutError(null)
     try {
       const res = await api.post("/payments/snap", { package_id: pkg.id })
       const token = res.data?.data?.snap_token
@@ -174,7 +176,12 @@ export default function BillingPage() {
         onPending: (result) => pollStatus(result.order_id),
         onClose: () => fetchBilling(),
       })
-    } catch (error) {
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.error?.message ||
+        error?.message ||
+        "Gagal memproses pembayaran. Coba lagi."
+      setCheckoutError(msg)
       console.error("Checkout failed:", error)
     } finally {
       setCheckingOut(null)
@@ -261,6 +268,12 @@ export default function BillingPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {checkoutError && (
+                    <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-sm text-destructive">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{checkoutError}</span>
+                    </div>
+                  )}
                   {packages.length === 0 ? (
                     <p className="text-muted-foreground">Tidak ada paket tersedia.</p>
                   ) : (

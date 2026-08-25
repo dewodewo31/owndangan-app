@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  ShieldCheck,
 } from "lucide-react"
 import { useAuth } from "@/providers/auth-context"
 import { cn } from "@/lib/utils"
@@ -25,9 +26,12 @@ const navItems = [
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
 ]
 
+const adminNavItem = { href: "/admin", label: "Admin Dashboard", icon: ShieldCheck }
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
   const pathname = usePathname()
+  const visibleNavItems = user?.role === "admin" ? [...navItems, adminNavItem] : navItems
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
@@ -61,7 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <p className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Menu
         </p>
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
           return (
             <Link

@@ -86,7 +86,7 @@ export async function payWithSnap(
     throw new Error("Midtrans Snap not available")
   }
   const snap = window.snap
-  return new Promise<void>((resolve) => {
+  return new Promise<void>((resolve, reject) => {
     snap.pay(token, {
       onSuccess: (result: SnapResult) => {
         callbacks.onSuccess?.(result)
@@ -98,7 +98,7 @@ export async function payWithSnap(
       },
       onError: (result: SnapResult) => {
         callbacks.onError?.(result)
-        resolve()
+        reject(new Error(result.status_message || "Pembayaran gagal"))
       },
       onClose: () => {
         callbacks.onClose?.()

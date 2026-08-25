@@ -3,6 +3,9 @@
 .env.local
 .env.production
 .env.*.local
+docker/.env
+backend/.env
+frontend/.env.local
 
 # Dependencies
 node_modules/
@@ -42,6 +45,12 @@ secrets/
 # Stray artifacts
 -l
 *.tsbuildinfo
+/sh
+f3-*.png
 
 # Local tooling config (contains secrets) — never publish
 opencode.json
+
+# Agent / cache state (never publish)
+.omo/
+.playwright-mcp/

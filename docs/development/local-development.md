@@ -43,18 +43,14 @@ docker start owndangan-db
 
 ### Run Migrations
 
+Migrations and default package seeds run automatically when the backend starts (`db.AutoMigrate()` + `SeedPackages` in `cmd/server/main.go`). Just start the server:
+
 ```bash
 cd backend
-goose postgres "$DATABASE_URL" up    # Apply all pending
-goose postgres "$DATABASE_URL" down  # Rollback last
-goose status                        # Check migration state
+go run ./cmd/server
 ```
 
-### Seed Data
-
-```bash
-TODO: go run cmd/seed/main.go
-```
+> `make migrate-up` currently points at a missing `cmd/migrate` binary and will fail; rely on the server's auto-migrate.
 
 ## Running Tests
 
@@ -91,9 +87,6 @@ npm test -- --watch
 
 # Coverage
 npm test -- --coverage
-
-# E2E tests
-npm run e2e
 ```
 
 ## Linting

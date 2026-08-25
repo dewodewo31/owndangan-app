@@ -57,7 +57,7 @@ Frontend (Next.js App Router)
 
 ## Getting Started
 
-> TODO: Define setup commands after implementation begins.
+See `docs/how-to-run.md` for the full setup and run instructions (native dev with Dockerized PostgreSQL, or the full Docker stack).
 
 ## Development
 

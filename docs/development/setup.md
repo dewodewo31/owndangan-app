@@ -44,13 +44,17 @@ cp backend/.env.example backend/.env
 # Edit backend/.env with your values
 ```
 
-Minimum required variables:
+The backend reads individual `DB_*` variables (not a single `DATABASE_URL`). Minimum required:
 
 ```
-DATABASE_URL=postgres://postgres:password@localhost:5432/owndangan
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=postgres
+DB_PASSWORD=password
+DB_NAME=owndangan
 JWT_SECRET=<random-64-char-string>
-MIDTRANS_SERVER_KEY=<sandbox-server-key>
-MIDTRANS_CLIENT_KEY=<sandbox-client-key>
+MIDTRANS_SERVER_KEY=<sandbox-server-key>   # optional for local boot
+MIDTRANS_CLIENT_KEY=<sandbox-client-key>   # optional for local boot
 MIDTRANS_IS_PRODUCTION=false
 ```
 
@@ -63,7 +67,7 @@ cp frontend/.env.example frontend/.env.local
 Minimum required variables:
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:8080/api
+NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=<sandbox-client-key>
 ```
 
@@ -76,24 +80,17 @@ createdb owndangan
 createdb owndangan_test
 ```
 
-Or via Docker:
+Or via Docker (the repo convention uses port 5433, matching `backend/.env`):
 
 ```bash
-docker run -d --name owndangan-db -e POSTGRES_PASSWORD=password -p 5432:5432 postgres:16
+docker run -d --name owndangan-db -e POSTGRES_PASSWORD=password -p 5433:5432 postgres:16
 ```
 
-### Run Migrations
+### Migrations & Seeds
 
-```bash
-cd backend
-goose postgres "$DATABASE_URL" up
-```
+Migrations and default package seeding run **automatically when the backend starts** (`db.AutoMigrate()` + `SeedPackages` in `cmd/server/main.go`). No separate migration command is required — just start the server (see below).
 
-### Seed Data (Optional)
-
-```bash
-TODO: go run cmd/seed/main.go
-```
+> Note: `make migrate-up` currently points at a `cmd/migrate` binary that does not exist and will fail. Use the server's auto-migrate instead.
 
 ## Start Development Servers
 
@@ -107,7 +104,7 @@ air
 Without hot reload:
 
 ```bash
-go run cmd/server/main.go
+go run ./cmd/server
 ```
 
 ### Frontend
@@ -126,5 +123,5 @@ npm run dev
 ## Common Issues
 
 - **Port already in use**: Kill existing process or change `PORT` in `.env`.
-- **Database connection refused**: Ensure PostgreSQL is running and `DATABASE_URL` is correct.
-- **Missing migrations**: Run `goose up` before starting the backend.
+- **Database connection refused**: Ensure PostgreSQL is running and the `DB_*` values in `backend/.env` (host/port/user/password/name) are correct. The repo convention is PostgreSQL on port `5433`.
+- **Missing migrations**: Not applicable — the backend auto-migrates the schema on startup. Just start the server.

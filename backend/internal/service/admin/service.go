@@ -93,6 +93,7 @@ func toRecentTransactions(txns []model.Transaction) []RecentTransaction {
 			ID:        t.ID,
 			UserName:  name,
 			UserEmail: email,
+			OrderID:   t.OrderID,
 			Amount:    t.GrossAmount,
 			Status:    t.Status,
 			Timestamp: ts,
@@ -278,7 +279,8 @@ type RecentTransaction struct {
 	ID        uuid.UUID `json:"id"`
 	UserName  string    `json:"user_name"`
 	UserEmail string    `json:"user_email"`
-	Amount    int64     `json:"amount"`
+	OrderID   string    `json:"order_id"`
+	Amount    int64     `json:"gross_amount"`
 	Status    string    `json:"status"`
 	Timestamp time.Time `json:"timestamp"`
 }
